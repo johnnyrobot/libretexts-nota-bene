@@ -252,8 +252,9 @@ router.get('/annotation', (req, res) => {
                     headAnnotations.push(utils.createAnnotation(location, location.Thread.HeadAnnotation, instructors, tas, req.user.id, follows))
 
                     // store all associated annotations in {parent_id : annotation} annotations object
+                    const canReadFamily=require('../auth/native-discussions').threadReader(location.Thread.AllAnnotations,location.Thread.HeadAnnotation,req.user.id,isUserInstructor || isUserTA);
                     location.Thread.AllAnnotations.forEach((annotation) => {
-                        if (annotation.Parent) {
+                        if (annotation.Parent && canReadFamily(annotation)) {
                             if (!(annotation.Parent.id in annotations)) {
                                 annotations[annotation.Parent.id] = []
                             }
@@ -633,19 +634,7 @@ router.get('/specific_thread', async (req, res) => {
             ]
         })
 
-        const canRead=require('../auth/native-discussions').canRead;
-        const staff=classInstructors.has(req.user.id) || classTAs.has(req.user.id);
-        const byId=new Map(thread.AllAnnotations.map(annotation=>[annotation.id,annotation]));
-        const readable=annotation=>{
-            const seen=new Set();let current=annotation;
-            while(current){
-                if(seen.has(current.id) || !canRead(current,req.user.id,staff))return false;
-                seen.add(current.id);
-                if(!current.Parent)return true;
-                current=byId.get(current.Parent.id) || (current.Parent.id===thread.HeadAnnotation.id ? thread.HeadAnnotation : null);
-            }
-            return false;
-        };
+        const readable=require('../auth/native-discussions').threadReader(thread.AllAnnotations,thread.HeadAnnotation,req.user.id,classInstructors.has(req.user.id) || classTAs.has(req.user.id));
         let annotations = {}
         let headAnnotation = utils.createAnnotationFromThread(thread.Location.HtmlLocation, thread.HeadAnnotation, thread.SeenUsers, classInstructors, classTAs, req.user.id, follows)
 

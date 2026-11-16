@@ -18,17 +18,20 @@ class Publication(unittest.TestCase):
             page = source / 'social_psychology' / '13.01' / 'index.html'
             page.parent.mkdir(parents=True)
             content = '<main id="main-content"><h1>Cooperation</h1><p>Exact <em>meaning</em> with \\(x^2\\).</p><img src="/_assets/figure.png" alt="figure"></main>'
-            page.write_text('<html><head><title>Book</title></head><body><a href="/social_psychology/13.02/">Next</a><a target="_blank" href="https://dev.libretexts.org/https%3A%2F%2Fsocialsci.libretexts.org/Bookshelves/Example/social_psychology/13.02">Chapter</a>'+content+'<script id="sr-page-context" type="application/json">{}</script><script type="module" src="/_assets/reader/annotations.mjs"></script></body></html>')
+            page.write_text('<html><head><title>Book</title></head><body><a href="/social_psychology/13.02/">Next</a><a target="_blank" href="https://dev.libretexts.org/https%3A%2F%2Fsocialsci.libretexts.org/Bookshelves/Example/social_psychology/13.02?view=reader#summary">Chapter</a>'+content+'<script id="sr-page-context" type="application/json">{}</script><script type="module" src="/_assets/reader/annotations.mjs"></script></body></html>')
             second = source / 'social_psychology' / '13.02' / 'index.html'
             second.parent.mkdir(parents=True)
             second.write_text('<html><head><title>Next</title></head><body><main id="main-content"><p>Next page</p></main></body></html>')
+            (source/'_assets').mkdir();(source/'_assets/figure.png').write_bytes(b'fixture-image')
             output = root / 'output'
             publisher.publish(source, output)
             rendered = (output / 'books/social_psychology/13.01/index.html').read_text()
             self.assertIn(content, rendered)
+            self.assertEqual((output/'_assets/figure.png').read_bytes(),b'fixture-image')
             self.assertIn('href="/books/social_psychology/13.02/"', rendered)
             self.assertIn('src="/client/js/bundle.js"', rendered)
             self.assertNotIn('https://dev.libretexts.org/', rendered)
+            self.assertIn('href="/books/social_psychology/13.02/?view=reader#summary"',rendered)
             self.assertNotIn('target="_blank"',rendered)
             self.assertNotIn('sr-page-context', rendered)
             self.assertNotIn('annotations.mjs', rendered)

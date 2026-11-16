@@ -15,3 +15,10 @@ html[data-nb-textbook] .foot-inner { padding-left:40px; padding-right:16px; }
  html[data-nb-textbook] .nb-sidebar { position:fixed!important; top:auto!important; bottom:0!important; right:0!important; width:100vw!important; height:48vh!important; max-height:48vh!important; overflow:auto; }
 }
 @media(forced-colors:active) { .nb-book-controls {border-color:CanvasText;} }
+/* Reader consent is modal and must sit above the native sidebar. Keep playback usable. */
+html[data-nb-textbook] .tts-dialog,
+html[data-nb-textbook] .tts-bar { z-index:2147483647!important; }
+@media(min-width:761px) { html[data-nb-textbook] .tts-bar { right:325px; } }
+@media(max-width:760px) { html[data-nb-textbook] .tts-bar { bottom:48vh; max-width:100%; } }
+
+html[data-nb-textbook] main .ch-grid, html[data-nb-textbook] main .mt-sortable-listings-container { max-width:100%; }

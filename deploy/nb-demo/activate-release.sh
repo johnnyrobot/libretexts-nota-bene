@@ -9,6 +9,10 @@ require_root
 ID=${1:?release id}
 TARGET="$NB_DEMO_ROOT/releases/$ID"
 [ -f "$TARGET/RELEASE.json" ] || { echo "Release $ID is not staged." >&2; exit 1; }
+if [ -f "$TARGET/textbook/textbook-manifest.json" ]; then
+ORIGIN=$(node -p 'require(process.argv[1]).origin' "$TARGET/RELEASE.json")
+node "$TARGET/scripts/textbook-binding.cjs" "$TARGET/textbook/textbook-manifest.json" "$NB_DEMO_OPERATOR" "$ORIGIN"
+fi
 PREVIOUS=$(readlink "$NB_DEMO_ROOT/current" 2>/dev/null || true)
 systemctl enable --now nb-demo-postgres.service
 "$HERE/backup.sh"

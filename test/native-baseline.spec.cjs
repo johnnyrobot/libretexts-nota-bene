@@ -58,6 +58,13 @@ test('native client creates an annotation and another user replies, with persist
   const actions = { annotationCreated: false, replyCreated: false };
   const alice = await login(browser, settings.users[0]);
   if (!readOnly && !proof.annotationId) {
+    if(process.env.NB_BASELINE_SELECTION==='keyboard') {
+      await alice.page.getByLabel('Choose a passage to discuss').focus();
+      await alice.page.keyboard.press('Home');
+      await alice.page.keyboard.press('Tab');
+      await alice.page.keyboard.press('Enter');
+      await expect(alice.page.locator('.editor-view .ql-editor')).toBeFocused();
+    } else {
     await alice.page.locator(passageSelector).first().scrollIntoViewIfNeeded();
     const positions = await alice.page.locator(passageSelector).first().evaluate((element, length) => {
       const text = element.firstChild;
@@ -71,6 +78,7 @@ test('native client creates an annotation and another user replies, with persist
     await alice.page.mouse.move(positions.x2, positions.y2, { steps: 20 });
     expect(await alice.page.evaluate(() => window.getSelection().toString())).toBe(expectedQuote);
     await alice.page.mouse.up();
+    }
     const editor = alice.page.locator('.editor-view');
     await expect(editor).toBeVisible();
     await editor.locator('.ql-editor').fill(question);

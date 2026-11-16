@@ -10,6 +10,7 @@ const HtmlLocation = require('../models').HtmlLocation;
 const AnnotationMedia = require('../models').AnnotationMedia
 const Tag = require('../models').Tag;
 const router = express.Router();
+router.use(require('../auth/native-discussions'));
 const { Op } = require("sequelize");
 const utils = require('../models/utils')(require('../models'));
 let socketapi = require("../socketapi")

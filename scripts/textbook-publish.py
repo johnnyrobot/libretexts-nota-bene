@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+from urllib.parse import unquote, urlsplit
 
 BOOK = 'social_psychology'
 PREFIX = '/books/'
@@ -24,8 +25,17 @@ def publish(source, output):
     if not pages:
         raise ValueError('No textbook pages.')
     inventory = []
+    destinations = sorted([(page.relative_to(book).as_posix().removesuffix('/index.html'), '/books/' + page.relative_to(source).as_posix().removesuffix('index.html')) for page in pages if page.parent != book], key=lambda pair: len(pair[0]), reverse=True)
+    def book_link(match):
+        original = html.unescape(match.group(2))
+        decoded = unquote(unquote(original)).rstrip('/')
+        if original.startswith(('https://dev.libretexts.org/', 'https://library.libretexts.dev/')):
+            for suffix,target in destinations:
+                if decoded.endswith('/'+suffix):
+                    return match.group(1)+html.escape(target,quote=True)+match.group(3)
+        return match.group(0)
     # Validate inputs before writing. Do not follow source symlinks to other checkouts/state.
-    if any(p.is_symlink() for p in book.rglob('*')):
+    if book.is_symlink() or any(p.is_symlink() for p in book.rglob('*')):
         raise ValueError('Symlinked collection is not a frozen input.')
     output.mkdir(parents=True)
     for page in pages:
@@ -35,6 +45,13 @@ def publish(source, output):
         text = re.sub(r'<script\b(?=[^>]*\bid=["\']sr-page-context["\'])[^>]*>.*?</script>', '', text, flags=re.S)
         text = re.sub(r'<script\b[^>]*\bsrc=["\'][^"\']*/annotations\.mjs["\'][^>]*>\s*</script>', '', text)
         text = re.sub(r'<link\b[^>]*\bhref=["\'][^"\']*/annotations\.css["\'][^>]*>', '', text)
+        def local_anchor(match):
+            original_tag=match.group(0)
+            rewritten=re.sub(r'(href=["\'])(.*?)(["\'])', book_link, original_tag)
+            if rewritten!=original_tag:
+                rewritten=re.sub(r'\s+target=["\']_blank["\']','',rewritten)
+            return rewritten
+        text = re.sub(r'<a\b[^>]*>', local_anchor, text)
         # Only navigation attributes change. Content text and image/math markup stay byte-exact.
         text = re.sub(r'(href=["\'])/social_psychology(?=/|["\'])', r'\1/books/social_psychology', text)
         text = re.sub(r'(href=["\'])/(\s*["\'])', r'\1/books/social_psychology/\2', text)

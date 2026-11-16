@@ -25,7 +25,7 @@ The client emits inherited lint and bundle-size warnings. Build success is not a
 
 ## Initialize a fresh isolated installation
 
-Choose a new state path outside both checkouts. Keep the path short enough for PostgreSQL Unix socket names. The directory contains database files, generated credentials and a private TLS key. Do not commit, attach or publish it.
+Choose a new state path outside both checkouts. Use only ASCII letters, digits, slash, dot, underscore and hyphen; other characters are rejected before writing state. Keep the path short enough for PostgreSQL Unix socket names. The directory contains database files, generated credentials and a private TLS key. Do not commit, attach or publish it.
 
 ```sh
 export NB_BASELINE_STATE="$HOME/nb-lt573-state"
@@ -44,7 +44,7 @@ Start in the server checkout with the same environment variables:
 node scripts/baseline-server.cjs
 ```
 
-The launcher awaits the existing model synchronization before binding HTTPS on loopback ports 3000 and 3001. It serves the actual client build and the synthetic reading at `https://127.0.0.1:3001/fixture.html`. It reads the generated certificate directly; it does not use upstream development keys or modify system trust. The database schema uses upstream additive synchronization, without force/reset.
+The launcher awaits the existing model synchronization and default-tag setup before binding HTTPS on loopback ports 3000 and 3001. It serves the actual client build and the synthetic reading at `https://127.0.0.1:3001/fixture.html`. It reads the generated certificate directly; it does not use upstream development keys or modify system trust. The database schema uses upstream additive synchronization, without force/reset.
 
 Email uses Nodemailer's stream capture transport and cannot send through SMTP in this launcher. Existing upstream email defaults remain unchanged outside this mode. The capture test calls the public send operation with network connections forbidden.
 
@@ -58,7 +58,7 @@ Seeding uses the original authenticated NB APIs to create two synthetic accounts
 
 ## Verify the native workflow
 
-Install the matching Playwright Chromium browser once with `npx playwright install chromium`. Use a new lowercase scenario name for a new creation run. Reuse that name for readback.
+Install the matching Playwright Chromium browser once with `npx playwright install chromium`. Use a new lowercase scenario name for a new creation run. Reusing a creation receipt is rejected; reuse that name only for readback. Each results directory must be fresh and empty; the runner checks before Playwright can clean it.
 
 ```sh
 export NB_BASELINE_RUN=complete

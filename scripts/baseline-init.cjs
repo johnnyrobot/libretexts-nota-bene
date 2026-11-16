@@ -11,6 +11,9 @@ if (!state || !path.isAbsolute(state) || !pgBin || !path.isAbsolute(pgBin)) {
   throw new Error('Set absolute NB_BASELINE_STATE and NB_BASELINE_PG_BIN paths.');
 }
 const relative = path.relative(root, path.resolve(state));
+if (!/^[A-Za-z0-9_./-]+$/.test(state)) {
+  throw new Error('The state path must use only ASCII letters, digits, slash, dot, underscore and hyphen.');
+}
 if (!relative.startsWith('..' + path.sep) || fs.existsSync(state) || fs.existsSync(path.join(root, 'config.js'))) {
   throw new Error('Use a new state directory outside the checkout and preserve any existing config.js.');
 }

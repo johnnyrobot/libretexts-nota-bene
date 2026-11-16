@@ -57,6 +57,7 @@ async function apiRead(page) {
 
 test('native client creates an annotation and another user replies, with persistent rendered readback', async ({ browser }) => {
   const readOnly = phase === 'readback';
+  if (!readOnly && fs.existsSync(proofPath)) throw new Error('This run already has a receipt. Use readback or a new run name; do not count skipped writes as creation.');
   const proof = fs.existsSync(proofPath) ? JSON.parse(fs.readFileSync(proofPath, 'utf8')) : {};
   const actions = { annotationCreated: false, replyCreated: false };
   const alice = await login(browser, settings.users[0]);
@@ -107,6 +108,7 @@ test('native client creates an annotation and another user replies, with persist
     fs.writeFileSync(proofPath, JSON.stringify(proof), { mode: 0o600 });
   }
   expect(proof.replyId).toBeTruthy();
+  if (!readOnly) expect(actions).toEqual({ annotationCreated: true, replyCreated: true });
   await expect(bob.page.locator('#nb-sidebar')).toContainText(reply);
   const data = await apiRead(bob.page);
   const serialized = JSON.stringify(data);

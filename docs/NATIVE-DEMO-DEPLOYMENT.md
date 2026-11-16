@@ -39,13 +39,15 @@ These were found by reading the merged native source and checked on the local st
 | `POST /api/users/getuser {id: reset_password_id}` returns a JWT | Account takeover when combined with the line above | Closed with 404 |
 | `/api/users/register`, `/forgotpassword`, `/all`, `/api/admin*`, `/api/email*` | Open sign-up, user listing, admin actions and mail | Closed with 404. Seeding uses loopback |
 | `/embed_NB.js`, `/c/*`, `/f/*`, `/pdf4/rpc*`, `/content/*`, `/settings*` 301 to `nb1.mit.edu` | Sends users to MIT app data | Closed with 404 and no `Location` header |
-| CORS check uses `Source.findOne` (a Promise, always truthy) | Allows any origin | **Not fixed.** The CSP applies only to pages served by this site, so it doesn't stop a page on another origin from calling the API. What limits the exposure: auth is a bearer token with no cookies, so a foreign page has no credentials to ride on,. socket.io's CORS setting names the single origin, but that covers HTTP long-polling only. A WebSocket handshake from any origin is accepted, and its `joined` events are unauthenticated. The app fix is a follow-up |
+| socket.io `joined` is unauthenticated; `new_thread`/`new_reply` send thread content to the whole room whatever the annotation's visibility | Anyone who knows a course ID and reading URL could receive other users' annotations, including instructor-only ones | **Closed.** `demo-server.cjs` doesn't attach socket.io, and the proxy returns 404 for `/socket.io*`. Smoke checks both transports. Live updates are off as a result (see known limitations) |
+| CORS check uses `Source.findOne` (a Promise, always truthy) | Allows any origin | **Not fixed.** The CSP applies only to pages served by this site, so it doesn't stop a page on another origin from calling the API. What limits the exposure: auth is a bearer token with no cookies, so a foreign page has no credentials to ride on. The app fix is a follow-up |
 | The client loads CDN KaTeX, quill and fontawesome, the `nb.mit.edu` logo and `ding.mp3` | Third-party requests | Blocked by the CSP (`default-src 'self'`) |
 
 The limits this creates are recorded below as known limitations.
 
 ## Known limitations of the demo
 
+- **No live updates.** socket.io is closed, so another reader's new annotation or reply appears after a page reload, not instantly. Online counts and typing indicators are also off. The browser console shows socket connection errors, which are expected. Restoring live updates needs an authenticated, visibility-checked socket path in the app.
 - **Follow/unfollow doesn't work.** It calls the closed `/api/users/user/*`. A fix belongs in the app, as a follow-up.
 - **Media and file uploads fail.** The release is read-only and the request body cap is 1 MB.
 - **External CDN styling and the MIT logo are blocked**, so some icons and math rendering are missing.
@@ -79,10 +81,10 @@ Every command after step 1 needs the Chief's explicit approval for that step. St
    - No `nbdemo` or `nbdemo-pg` users or paths exist.
    - Caddy is v2.7 or later (the snippet uses `{args[0]}`), is active, and has no `nb.libretexts.dev` block.
 2. **DNS (final prerequisite).** Point `nb.libretexts.dev` (A/AAAA) at the host. Then re-run the read-only preflight. Compare its DNS answer with the host's public IP from the provider. On NAT hosts the preflight's own address list shows only private addresses, and an empty DNS answer prints nothing. Caddy needs that before it can get a certificate in step 7. Don't provision until it does.
-3. **Provision.** Run `sudo provision-host.sh https://nb.libretexts.dev <pg-bin-dir>`. It creates the users, the cluster, role and database, the secrets, and the operator settings. It installs the units without enabling or starting them.
+3. **Provision.** Run `sudo provision-host.sh https://nb.libretexts.dev <pg-bin-dir>`. It creates the users, the cluster, role and database, the secrets, and the operator settings. It installs the units without enabling or starting them. If it fails partway, stop and report the output. A rerun refuses because the users and paths now exist, and there is no teardown script. Don't delete anything by guesswork on a shared host.
 4. **Install the release.** Copy the tarball and run `sudo install-release.sh <tar.gz> <sha256>`. This verifies the hash, the manifest and the origin, then runs `npm ci --ignore-scripts` against the release lockfile. This is the full install that CI and the baseline use. Upstream lists runtime modules (`nodemailer`, `uuid`, `csv-parser`) as devDependencies, so `--omit=dev` cannot start the app. It does not switch releases.
 5. **Activate.** Run `sudo activate-release.sh <release-id>`. This enables PostgreSQL, takes a backup, switches `current` atomically, starts the app and runs `health.sh`. It records `previous` only after the new release is healthy. If health fails, it switches back to the previous release. On a first activation with no previous release, it disables the app and removes `current`. Any failure exits 1, including a rollback that is itself unhealthy. Read stderr to tell which happened.
-6. **Seed once.** Run `sudo seed-demo.sh`. It refuses to run if `fixture.json` exists.
+6. **Seed once.** Run `sudo seed-demo.sh`. It refuses to run if `fixture.json` exists. If a run stops before writing `fixture.json`, run it again: it signs in to accounts that already exist and reuses the demo course and reading.
 7. **Caddy.** Copy `deploy/nb-demo/nb-demo.caddy` to `/etc/caddy/nb-demo.caddy`. Add this block to the Caddyfile:
 
    ```caddyfile

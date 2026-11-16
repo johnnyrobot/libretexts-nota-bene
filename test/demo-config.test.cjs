@@ -118,3 +118,17 @@ test('host install uses the verified full lockfile install', () => {
   const lock = require('../package-lock.json');
   for (const name of ['nodemailer', 'uuid', 'csv-parser']) assert.ok(lock.packages[`node_modules/${name}`], name);
 });
+
+test('proxy CSP keeps every source same-origin and allows only the eval the native client needs', () => {
+  const caddy = fs.readFileSync(path.join(__dirname, '..', 'deploy', 'nb-demo', 'nb-demo.caddy'), 'utf8');
+  const csp = caddy.match(/Content-Security-Policy "([^"]+)"/)[1];
+  const directives = Object.fromEntries(csp.split(';').map(part => part.trim().split(/\s+/)).map(([name, ...values]) => [name, values]));
+  // The native client mounts Vue with string templates, compiled at runtime with new Function
+  // (found in LT-575 staging: the sidebar silently never rendered under script-src 'self').
+  assert.deepEqual(directives['script-src'], ["'self'", "'unsafe-eval'"]);
+  assert.deepEqual(directives['default-src'], ["'self'"]);
+  assert.deepEqual(directives['connect-src'], ["'self'"]);
+  assert.deepEqual(directives['frame-ancestors'], ["'none'"]);
+  assert.deepEqual(directives['object-src'], ["'none'"]);
+  assert.doesNotMatch(csp, /https?:|wss?:|\*/, 'no third-party or wildcard sources');
+});

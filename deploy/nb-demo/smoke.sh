@@ -13,7 +13,7 @@ WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
 
 code=$("${CURL[@]}" -o "$WORK/check" -D "$WORK/h" -w '%{http_code}' "$ORIGIN/api/check")
 [ "$code" = 200 ] && grep -q '"status":"OK"' "$WORK/check" && pass "api check" || fail "api check ($code)"
-grep -qi '^content-security-policy: default-src .self.' "$WORK/h" && pass "CSP header" || fail "CSP header"
+grep -qi "^content-security-policy: default-src 'self'; script-src 'self' 'unsafe-eval'; " "$WORK/h" && pass "CSP header" || fail "CSP header"
 grep -qi '^strict-transport-security:' "$WORK/h" && pass "HSTS header" || fail "HSTS header"
 ! grep -qi '^x-powered-by:' "$WORK/h" && pass "no x-powered-by" || fail "x-powered-by present"
 

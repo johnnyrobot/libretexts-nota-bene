@@ -43,6 +43,7 @@ The limits this creates are recorded below as known limitations.
 - **The MIT consent text still appears** in the server UI.
 - **The client still bakes `Environments.dev` at build time.** The proper fix is a client PR with a build-time origin. Until then, the bundle rewrite is checked by tests and by the build.
 - **App CORS is still permissive** in code. The proxy CSP and the bearer-only auth model contain it, but they don't fix it.
+- **The CSP allows `'unsafe-eval'` for scripts.** The native client mounts Vue with string templates, which are compiled at runtime. Under `script-src 'self'` alone, the sidebar silently fails to render; staging found this. Scripts are still same-origin only. Precompiling the client templates in a client PR would let this allowance be removed.
 
 ## Workstation: build the release
 

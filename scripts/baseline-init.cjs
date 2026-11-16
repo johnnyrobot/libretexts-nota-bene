@@ -2,20 +2,25 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
+const { assertStateOutsideCheckouts } = require('./baseline-paths.cjs');
 
 process.umask(0o077);
 const state = process.env.NB_BASELINE_STATE;
+const client = process.env.NB_BASELINE_CLIENT;
 const pgBin = process.env.NB_BASELINE_PG_BIN;
 const root = path.resolve(__dirname, '..');
 if (!state || !path.isAbsolute(state) || !pgBin || !path.isAbsolute(pgBin)) {
   throw new Error('Set absolute NB_BASELINE_STATE and NB_BASELINE_PG_BIN paths.');
 }
-const relative = path.relative(root, path.resolve(state));
 if (!/^[A-Za-z0-9_./-]+$/.test(state)) {
   throw new Error('The state path must use only ASCII letters, digits, slash, dot, underscore and hyphen.');
 }
-if (!relative.startsWith('..' + path.sep) || fs.existsSync(state) || fs.existsSync(path.join(root, 'config.js'))) {
-  throw new Error('Use a new state directory outside the checkout and preserve any existing config.js.');
+assertStateOutsideCheckouts(state, client);
+if (Buffer.byteLength(path.join(state, 'sockets', '.s.PGSQL.55473')) > 103) {
+  throw new Error('State path is too long for the baseline Unix socket; use a shorter path.');
+}
+if (fs.existsSync(state) || fs.existsSync(path.join(root, 'config.js'))) {
+  throw new Error('Use a new state directory outside both checkouts and preserve any existing config.js.');
 }
 for (const tool of ['initdb', 'pg_ctl', 'createdb']) fs.accessSync(path.join(pgBin, tool), fs.constants.X_OK);
 fs.mkdirSync(state, { recursive: true, mode: 0o700 });

@@ -1,16 +1,9 @@
 const { defineConfig } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
+const { canonical, overlaps } = require('./scripts/baseline-paths.cjs');
 const results = process.env.NB_BASELINE_RESULTS;
 const state = process.env.NB_BASELINE_STATE;
-function canonical(value) {
-  const absolute = path.resolve(value);
-  if (fs.existsSync(absolute)) return fs.realpathSync(absolute);
-  return path.join(canonical(path.dirname(absolute)), path.basename(absolute));
-}
-function overlaps(a, b) {
-  return a === b || a.startsWith(b + path.sep) || b.startsWith(a + path.sep);
-}
 if (!results || !state || !path.isAbsolute(results) || !path.isAbsolute(state)
   || overlaps(canonical(__dirname), canonical(results)) || overlaps(canonical(state), canonical(results))
   || (process.env.NB_BASELINE_CLIENT && overlaps(canonical(process.env.NB_BASELINE_CLIENT), canonical(results)))

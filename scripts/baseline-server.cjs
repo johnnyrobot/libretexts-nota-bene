@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
+const { assertStateOutsideCheckouts } = require('./baseline-paths.cjs');
 
 async function main() {
   const state = process.env.NB_BASELINE_STATE;
@@ -8,6 +9,7 @@ async function main() {
   if (!state || !path.isAbsolute(state) || !client || !path.isAbsolute(client)) {
     throw new Error('Set absolute NB_BASELINE_STATE and NB_BASELINE_CLIENT paths.');
   }
+  assertStateOutsideCheckouts(state, client);
   const settings = JSON.parse(fs.readFileSync(path.join(state, 'settings.json'), 'utf8'));
   const database = new URL(settings.databaseUrl);
   if (database.hostname !== '127.0.0.1' || database.pathname !== '/nb_lt573') {
@@ -53,7 +55,7 @@ async function main() {
   process.on('SIGTERM', close);
 }
 
-main().catch(() => {
-  console.error('NB baseline startup failed. Check protected local state and database readiness.');
+main().catch(error => {
+  console.error(error.code === 'NB_BASELINE_STATE_PATH' ? error.message : 'NB baseline startup failed. Check protected local state and database readiness.');
   process.exit(1);
 });

@@ -25,7 +25,7 @@ The client emits inherited lint and bundle-size warnings. Build success is not a
 
 ## Initialize a fresh isolated installation
 
-Choose a new state path outside both checkouts. Use only ASCII letters, digits, slash, dot, underscore and hyphen; other characters are rejected before writing state. Keep the path short enough for PostgreSQL Unix socket names. The directory contains database files, generated credentials and a private TLS key. Do not commit, attach or publish it.
+Choose a new state path outside both checkouts. Use only ASCII letters, digits, slash, dot, underscore and hyphen; other characters are rejected before writing state. Initialization also rejects a state path whose socket name exceeds the verified macOS limit of 103 bytes before writing any state. The directory contains database files, generated credentials and a private TLS key. Do not commit, attach or publish it.
 
 ```sh
 export NB_BASELINE_STATE="$HOME/nb-lt573-state"
@@ -34,7 +34,7 @@ export NB_BASELINE_PG_BIN=/opt/homebrew/opt/postgresql@16/bin
 node scripts/baseline-init.cjs
 ```
 
-Initialization refuses an existing state directory or existing root `config.js`. Preserve either rather than deleting it to get past the guard. It creates a protected PostgreSQL cluster and `nb_lt573` database, starts only that cluster on `127.0.0.1:55473`, and generates task-only credentials/TLS material. Local Unix socket access is protected by the private state directory; TCP uses password authentication. It writes an ignored placeholder `config.js` because the original model loader requires that file before using `DATABASE_URL`.
+Initialization requires `NB_BASELINE_CLIENT` and checks canonical state paths against both checkouts, including symlink aliases, before generating credentials. The launcher repeats that check before reading settings or serving client assets. Initialization refuses an existing state directory or existing root `config.js`. Preserve either rather than deleting it to get past the guard. It creates a protected PostgreSQL cluster and `nb_lt573` database, starts only that cluster on `127.0.0.1:55473`, and generates task-only credentials/TLS material. Local Unix socket access is protected by the private state directory; TCP uses password authentication. It writes an ignored placeholder `config.js` because the original model loader requires that file before using `DATABASE_URL`.
 
 ## Start and seed
 
@@ -70,7 +70,7 @@ npm run test:baseline
 
 The browser signs in through NB's own form, uses actual pointer dragging to select a measured quote, and posts through the original editor. A second user signs in and replies through the original thread controls. Rendered text and authenticated JSON readback must include the acknowledged annotation and reply IDs. The JSON request uses the same Accept header as the native client; a generic HTML request may reach the upstream history fallback.
 
-The harness blocks HTTP and WebSocket requests outside the selected loopback service/client pair. A separate browser case proves that an unapproved local WebSocket endpoint receives no upgrade request; that case failed before the WebSocket guard and passed afterward. Its report records blocked external assets, including upstream CDN styles/scripts, fonts, logos and emoji URLs. This bounded text workflow does not prove math/media rendering or full visual parity. The launcher alone does not block a manually opened browser's inherited external asset URLs; use the harness for this controlled verification. No MIT service data was used.
+The harness blocks HTTP and WebSocket requests outside the selected loopback service/client pair. HTTP requests use redirect-disabled fetches; redirect responses are aborted before any destination is contacted, including local redirects. A regression uses only separate loopback endpoints to prove the unapproved destination receives no request. A separate browser case proves that an unapproved local WebSocket endpoint receives no upgrade request; that case failed before the WebSocket guard and passed afterward. Its report records blocked external assets, including upstream CDN styles/scripts, fonts, logos and emoji URLs. This bounded text workflow does not prove math/media rendering or full visual parity. The launcher alone does not block a manually opened browser's inherited external asset URLs; use the harness for this controlled verification. No MIT service data was used.
 
 ## Restart without reseeding
 

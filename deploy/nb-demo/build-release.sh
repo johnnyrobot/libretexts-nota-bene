@@ -56,7 +56,7 @@ const [id, origin, serverSha, clientSha, serverLock, clientLock, built, rewritte
 console.log(JSON.stringify({ id, origin, serverSha, clientSha,
   sha256: { serverPackageLock: serverLock, clientPackageLock: clientLock, clientBundleBuilt: built, clientBundleRewritten: rewritten, serverDistIndex: dist },
   buildRuntime: { node: process.version, npm: require("child_process").execSync("npm -v").toString().trim(), platform: process.platform + "-" + process.arch },
-  hostInstall: "npm ci --omit=dev --ignore-scripts from serverPackageLock" }, null, 2));
+  hostInstall: "npm ci --ignore-scripts from serverPackageLock (runtime modules are listed as devDependencies upstream)" }, null, 2));
 ' "$ID" "$ORIGIN" "$SERVER_SHA" "$CLIENT_SHA" "$(sha "$R/package-lock.json")" "$(sha "$WORK/client/package-lock.json")" \
   "$(sha "$WORK/client/public/js/bundle.js")" "$(sha "$R/client/js/bundle.js")" "$(sha "$R/dist/index.html")" > "$R/RELEASE.json"
 (cd "$R" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256) > "$WORK/MANIFEST.sha256"

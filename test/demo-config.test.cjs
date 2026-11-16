@@ -108,3 +108,13 @@ test('host preflight stays read-only', () => {
     assert.equal(redirect[1], '/dev/null', `preflight must not write ${redirect[1]}`);
   }
 });
+
+test('host install uses the verified full lockfile install', () => {
+  // Native NB requires nodemailer, uuid and csv-parser at runtime but lists them as devDependencies,
+  // so --omit=dev cannot start the app (found in LT-575 staging). Install as CI and the baseline do.
+  const install = fs.readFileSync(path.join(__dirname, '..', 'deploy', 'nb-demo', 'install-release.sh'), 'utf8');
+  assert.match(install, /npm ci --ignore-scripts --no-audit --no-fund/);
+  assert.doesNotMatch(install, /--omit=dev/);
+  const lock = require('../package-lock.json');
+  for (const name of ['nodemailer', 'uuid', 'csv-parser']) assert.ok(lock.packages[`node_modules/${name}`], name);
+});

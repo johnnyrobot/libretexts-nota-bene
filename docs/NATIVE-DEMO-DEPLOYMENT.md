@@ -68,7 +68,7 @@ Every command after step 1 needs the Chief's explicit approval for that step. No
    - Caddy is active and has no `nb.libretexts.dev` block.
 2. **DNS.** Point `nb.libretexts.dev` (A/AAAA) at the host.
 3. **Provision.** Run `sudo provision-host.sh https://nb.libretexts.dev <pg-bin-dir>`. It creates the users, the cluster, role and database, the secrets, and the operator settings. It installs the units without enabling or starting them.
-4. **Install the release.** Copy the tarball and run `sudo install-release.sh <tar.gz> <sha256>`. This verifies the hash, the manifest and the origin, then runs `npm ci --omit=dev --ignore-scripts` against the release lockfile. It does not switch releases.
+4. **Install the release.** Copy the tarball and run `sudo install-release.sh <tar.gz> <sha256>`. This verifies the hash, the manifest and the origin, then runs `npm ci --ignore-scripts` against the release lockfile. This is the full install that CI and the baseline use. Upstream lists runtime modules (`nodemailer`, `uuid`, `csv-parser`) as devDependencies, so `--omit=dev` cannot start the app. It does not switch releases.
 5. **Activate.** Run `sudo activate-release.sh <release-id>`. This enables PostgreSQL, takes a backup, switches `current` atomically, starts the app and runs `health.sh`. If health fails, it restores the previous release, or stops the app if there is none.
 6. **Seed once.** Run `sudo seed-demo.sh`. It refuses to run if `fixture.json` exists.
 7. **Caddy.** Copy `deploy/nb-demo/nb-demo.caddy` to `/etc/caddy/nb-demo.caddy`. Add this block to the Caddyfile:

@@ -21,7 +21,7 @@ tar -xzf "$TARBALL" -C "$STAGE" --no-same-owner
 ORIGIN=$(sed -n 's/^NB_DEMO_ORIGIN=//p' "$NB_DEMO_ETC/nb-demo.env")
 node -e 'const r=require(process.argv[1]); if (r.origin!==process.argv[2]) { console.error(`Release origin ${r.origin} differs from ${process.argv[2]}`); process.exit(1) }' \
   "$STAGE/$ID/RELEASE.json" "$ORIGIN"
-(cd "$STAGE/$ID" && HOME="$STAGE" npm_config_cache="$STAGE/.npm" npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
+(cd "$STAGE/$ID" && HOME="$STAGE" npm_config_cache="$STAGE/.npm" npm ci --ignore-scripts --no-audit --no-fund)
 rm -rf "$STAGE/.npm"
 chown -R root:root "$STAGE/$ID"
 chmod -R u=rwX,go=rX "$STAGE/$ID"

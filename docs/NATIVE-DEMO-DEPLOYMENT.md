@@ -1,6 +1,15 @@
 # Isolated native NB demo deployment (LT-575)
 
-This packet deploys the merged native NB baseline, unchanged, as one isolated demo site behind a TLS-terminating reverse proxy. The proposed origin is `https://nb.libretexts.dev`. DNS and routing for that origin belong to the Chief.
+This packet deploys the merged native NB baseline as one isolated demo site behind a TLS-terminating reverse proxy. The proposed origin is `https://nb.libretexts.dev`. DNS and routing for that origin belong to the Chief.
+
+The native app's routes, models and client source are not modified. What differs from the baseline run:
+
+- **Launcher.** `scripts/demo-server.cjs` replaces the baseline's self-signed HTTPS launcher on 3000/3001. It serves native `app.js` and the built client under `/client`, over plain HTTP on loopback.
+- **Validated environment.** `scripts/demo-config.cjs` validates the demo settings.
+- **Build-time bundle rewrite.** The built client bundle has its hard-coded development origin pair rewritten to the public origin.
+- **Release files.** The release adds a stub `config.js` and a demo `reading.html`.
+- **Proxy policy.** Caddy closes endpoints, limits body size and sets the response headers, including the CSP.
+- **Test harness.** The baseline harness accepts a staged origin through `NB_BASELINE_ORIGINS`.
 
 Nothing in this repository runs on a host by itself. Every host step below is a Chief activation gate. The read-only preflight is the only script meant to run before the Chief approves provisioning.
 
@@ -20,7 +29,7 @@ This is a synthetic demo. It does not establish institutional production readine
 
 ## Demonstrated blockers and how this packet handles them
 
-These were found by reading the merged native source and checked on the local staging run. App and client source are unchanged. The fixes are config and launcher only.
+These were found by reading the merged native source and checked on the local staging run. App and client source are unchanged. The handling is launcher, build-time bundle rewrite and proxy configuration only.
 
 | Native behavior | Risk on a public host | Handling |
 | --- | --- | --- |
@@ -30,7 +39,7 @@ These were found by reading the merged native source and checked on the local st
 | `POST /api/users/getuser {id: reset_password_id}` returns a JWT | Account takeover when combined with the line above | Closed with 404 |
 | `/api/users/register`, `/forgotpassword`, `/all`, `/api/admin*`, `/api/email*` | Open sign-up, user listing, admin actions and mail | Closed with 404. Seeding uses loopback |
 | `/embed_NB.js`, `/c/*`, `/f/*`, `/pdf4/rpc*`, `/content/*`, `/settings*` 301 to `nb1.mit.edu` | Sends users to MIT app data | Closed with 404 and no `Location` header |
-| CORS check uses `Source.findOne` (a Promise, always truthy) | Allows any origin | The CSP limits `connect-src` to `'self'`. socket.io CORS is the single origin. Auth is a bearer token, with no cookies |
+| CORS check uses `Source.findOne` (a Promise, always truthy) | Allows any origin | **Not fixed.** The CSP applies only to pages served by this site, so it doesn't stop a page on another origin from calling the API. What limits the exposure: auth is a bearer token with no cookies, so a foreign page has no credentials to ride on,. socket.io's CORS setting names the single origin, but that covers HTTP long-polling only. A WebSocket handshake from any origin is accepted, and its `joined` events are unauthenticated. The app fix is a follow-up |
 | The client loads CDN KaTeX, quill and fontawesome, the `nb.mit.edu` logo and `ding.mp3` | Third-party requests | Blocked by the CSP (`default-src 'self'`) |
 
 The limits this creates are recorded below as known limitations.
@@ -42,7 +51,7 @@ The limits this creates are recorded below as known limitations.
 - **External CDN styling and the MIT logo are blocked**, so some icons and math rendering are missing.
 - **The MIT consent text still appears** in the server UI.
 - **The client still bakes `Environments.dev` at build time.** The proper fix is a client PR with a build-time origin. Until then, the bundle rewrite is checked by tests and by the build.
-- **App CORS is still permissive** in code. The proxy CSP and the bearer-only auth model contain it, but they don't fix it.
+- **App CORS is still permissive** in code. Any origin's page can call the API. With no cookies, it can only act on a user's behalf if it already holds that user's bearer token. The proxy CSP doesn't change this, because it governs only this site's own pages.
 - **The CSP allows `'unsafe-eval'` for scripts.** The native client mounts Vue with string templates, which are compiled at runtime. Under `script-src 'self'` alone, the sidebar silently fails to render; staging found this. Scripts are still same-origin only. Precompiling the client templates in a client PR would let this allowance be removed.
 
 ## Workstation: build the release
@@ -58,22 +67,21 @@ This writes `<id>.tar.gz`, `<id>.tar.gz.sha256` and `<id>.RELEASE.json`. Release
 
 ## Host: Chief activation gates, in order
 
-Every command after step 1 needs the Chief's explicit approval for that step. Nothing here touches another site, its data, or the shared Caddyfile beyond one added site block.
+Every command after step 1 needs the Chief's explicit approval for that step. Step 1 is a preliminary inventory, and it may run before DNS exists. DNS is a separate prerequisite: it must be confirmed in step 2 before provisioning. Nothing here touches another site, its data, or the shared Caddyfile beyond one added site block.
 
 **Getting the scripts onto the host.** Copy the release tarball and its `.sha256` file to the host. Check the hash with `sha256sum -c`. Then extract the tarball as the operator, outside `/opt/nb-demo`, for example `mkdir ~/nb-demo-packet && tar -xzf <id>.tar.gz -C ~/nb-demo-packet`. Run steps 1 to 4 from `~/nb-demo-packet/<id>/deploy/nb-demo/`. Don't extract under `/opt/nb-demo`, because provisioning refuses to run over an existing `/opt/nb-demo`. From step 5 on, run the root-owned copies under `/opt/nb-demo/releases/<id>/deploy/nb-demo/`.
 
-1. **Read-only preflight.** Run as an unprivileged user: `deploy/nb-demo/preflight-readonly.sh nb.libretexts.dev`. It writes nothing, and a unit test enforces that. The Chief accepts it when:
+1. **Read-only preflight (preliminary host inventory).** Run as an unprivileged user: `deploy/nb-demo/preflight-readonly.sh nb.libretexts.dev`. It writes nothing, and a unit test enforces that. The Chief accepts it when:
    - Node is v22, and `node` and `npm` are on the service PATH (`/usr/bin` or `/usr/local/bin`; nvm and per-user installs don't work under systemd or sudo).
    - The listed host tools are present.
    - PostgreSQL 16 binaries are present.
    - Ports 3475 and 55475 are free.
    - No `nbdemo` or `nbdemo-pg` users or paths exist.
-   - DNS resolves to this host.
    - Caddy is v2.7 or later (the snippet uses `{args[0]}`), is active, and has no `nb.libretexts.dev` block.
-2. **DNS.** Point `nb.libretexts.dev` (A/AAAA) at the host.
+2. **DNS (final prerequisite).** Point `nb.libretexts.dev` (A/AAAA) at the host. Then re-run the read-only preflight. Compare its DNS answer with the host's public IP from the provider. On NAT hosts the preflight's own address list shows only private addresses, and an empty DNS answer prints nothing. Caddy needs that before it can get a certificate in step 7. Don't provision until it does.
 3. **Provision.** Run `sudo provision-host.sh https://nb.libretexts.dev <pg-bin-dir>`. It creates the users, the cluster, role and database, the secrets, and the operator settings. It installs the units without enabling or starting them.
 4. **Install the release.** Copy the tarball and run `sudo install-release.sh <tar.gz> <sha256>`. This verifies the hash, the manifest and the origin, then runs `npm ci --ignore-scripts` against the release lockfile. This is the full install that CI and the baseline use. Upstream lists runtime modules (`nodemailer`, `uuid`, `csv-parser`) as devDependencies, so `--omit=dev` cannot start the app. It does not switch releases.
-5. **Activate.** Run `sudo activate-release.sh <release-id>`. This enables PostgreSQL, takes a backup, switches `current` atomically, starts the app and runs `health.sh`. It records `previous` only after the new release is healthy. If health fails, it switches back to the previous release. On a first activation with no previous release, it disables the app and removes `current`.
+5. **Activate.** Run `sudo activate-release.sh <release-id>`. This enables PostgreSQL, takes a backup, switches `current` atomically, starts the app and runs `health.sh`. It records `previous` only after the new release is healthy. If health fails, it switches back to the previous release. On a first activation with no previous release, it disables the app and removes `current`. Any failure exits 1, including a rollback that is itself unhealthy. Read stderr to tell which happened.
 6. **Seed once.** Run `sudo seed-demo.sh`. It refuses to run if `fixture.json` exists.
 7. **Caddy.** Copy `deploy/nb-demo/nb-demo.caddy` to `/etc/caddy/nb-demo.caddy`. Add this block to the Caddyfile:
 

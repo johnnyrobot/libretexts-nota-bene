@@ -84,9 +84,9 @@ if (!global.hasOwnProperty('db')) {
     })
 }
 
-sequelize.sync().then(() => {
-    global.db.Class.findAll().then(nb_classes =>
-        nb_classes.forEach(nb_class => {
+global.db.ready = sequelize.sync().then(() => {
+    return global.db.Class.findAll().then(nb_classes =>
+        Promise.all(nb_classes.map(nb_class => {
             const tagDefaults = [
                 { value: "lightbulb-moment", emoji: "11_lightbulb-moment" },
                 { value: "learning-goal", emoji: "9_learning-goal" },
@@ -101,10 +101,10 @@ sequelize.sync().then(() => {
                 { value: "real-world-application", emoji: "10_real-world-application" },
                 { value: "needs-work", emoji: "12_needs-work" }
             ]
-            Promise.all(tagDefaults.map(tagDefault =>
+            return Promise.all(tagDefaults.map(tagDefault =>
                 global.db.TagType.findOrCreate({ where: tagDefault }).then(res => res[0])
             )).then(tag_types => nb_class.setTagTypes(tag_types))
-        })
+        }))
     )
 })
 

@@ -70,7 +70,7 @@ npm run test:baseline
 
 The browser signs in through NB's own form, uses actual pointer dragging to select a measured quote, and posts through the original editor. A second user signs in and replies through the original thread controls. Rendered text and authenticated JSON readback must include the acknowledged annotation and reply IDs. The JSON request uses the same Accept header as the native client; a generic HTML request may reach the upstream history fallback.
 
-The harness blocks all non-loopback network requests. Its report records blocked external assets, including upstream CDN styles/scripts, fonts, logos and emoji URLs. This bounded text workflow does not prove math/media rendering or full visual parity. The launcher alone does not block a manually opened browser's inherited external asset URLs; use the harness for this controlled verification. No MIT service data was used.
+The harness blocks HTTP and WebSocket requests outside the selected loopback service/client pair. A separate browser case proves that an unapproved local WebSocket endpoint receives no upgrade request; that case failed before the WebSocket guard and passed afterward. Its report records blocked external assets, including upstream CDN styles/scripts, fonts, logos and emoji URLs. This bounded text workflow does not prove math/media rendering or full visual parity. The launcher alone does not block a manually opened browser's inherited external asset URLs; use the harness for this controlled verification. No MIT service data was used.
 
 ## Restart without reseeding
 

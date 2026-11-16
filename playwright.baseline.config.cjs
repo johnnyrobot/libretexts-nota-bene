@@ -20,7 +20,7 @@ if (!results || !state || !path.isAbsolute(results) || !path.isAbsolute(state)
 }
 module.exports = defineConfig({
   testDir: './test',
-  testMatch: 'native-baseline.spec.cjs',
+  testMatch: ['native-baseline.spec.cjs', 'baseline-network.spec.cjs'],
   timeout: 60000,
   workers: 1,
   retries: 0,

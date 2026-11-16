@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
+const { localBrowser } = require('./helpers/local-browser.cjs');
 
 const state = process.env.NB_BASELINE_STATE;
 if (!state || !path.isAbsolute(state)) throw new Error('Set absolute NB_BASELINE_STATE.');
@@ -25,14 +26,7 @@ const question = `LT573 ${run}: How does this passage support cooperation?`;
 const reply = `LT573 ${run}: Comparing explanations makes our assumptions visible.`;
 
 async function login(browser, account) {
-  const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block' });
-  const blocked = new Set();
-  await context.route('**/*', route => {
-    const url = new URL(route.request().url());
-    if (url.hostname === '127.0.0.1' && ['3000', '3001'].includes(url.port)) return route.continue();
-    blocked.add(url.origin + url.pathname);
-    return route.abort('blockedbyclient');
-  });
+  const { context, blocked } = await localBrowser(browser);
   const page = await context.newPage();
   await page.goto(fixture.url);
   await page.getByLabel('Username:', { exact: true }).fill(account.username);

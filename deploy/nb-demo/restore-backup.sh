@@ -14,6 +14,8 @@ SAFETY=$("$HERE/backup.sh")
 echo "Safety backup before restore: $SAFETY"
 systemctl stop nb-demo.service
 runuser -u "$NB_DEMO_DB_USER" -- "$PG_BIN/pg_restore" -h "$NB_DEMO_DATA/sockets" -p "$NB_DEMO_PG_PORT" \
-  -d nb_demo --clean --if-exists --no-owner --role=nb_demo --single-transaction < "$SRC/nb_demo.dump"
+  -d nb_demo --clean --if-exists --no-owner --role=nb_demo --single-transaction < "$SRC/nb_demo.dump" || status=$?
+# The single transaction rolled back any partial restore, so bring the app back either way.
 systemctl start nb-demo.service
+if [ "${status:-0}" -ne 0 ]; then echo "Restore failed (pg_restore exit $status); nb_demo is unchanged." >&2; exit "$status"; fi
 "$HERE/health.sh"

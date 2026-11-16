@@ -9,7 +9,7 @@ const { spawnSync } = require('node:child_process');
 
 const source = path.join(__dirname, '..', 'deploy', 'nb-demo');
 
-function sandbox({ failRestart = false, failRestore = false, previous = true }) {
+function sandbox({ failRestart = false, failRestore = false, failLink = false, previous = true }) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'nb-demo-host-')));
   const dir = path.join(root, 'scripts');
   const bin = path.join(root, 'bin');
@@ -17,7 +17,7 @@ function sandbox({ failRestart = false, failRestore = false, previous = true }) 
   const backups = path.join(root, 'backups');
   const calls = path.join(root, 'calls.log');
   for (const d of [dir, bin, path.join(opt, 'releases'), backups]) fs.mkdirSync(d, { recursive: true });
-  for (const name of ['activate-release.sh', 'restore-backup.sh']) fs.copyFileSync(path.join(source, name), path.join(dir, name));
+  for (const name of ['activate-release.sh', 'restore-backup.sh', 'rollback.sh']) fs.copyFileSync(path.join(source, name), path.join(dir, name));
   fs.writeFileSync(path.join(dir, 'common.sh'), [
     `NB_DEMO_ROOT=${opt}`, `NB_DEMO_BACKUPS=${backups}`, `NB_DEMO_DATA=${root}/data`, 'NB_DEMO_DB_USER=nbdemo-pg', 'NB_DEMO_PG_PORT=55475',
     'require_root() { :; }', `pg_bin() { printf '%s' ${root}/pg; }`, ''].join('\n'));
@@ -32,6 +32,7 @@ function sandbox({ failRestart = false, failRestore = false, previous = true }) 
   if (process.platform === 'darwin') {
     script(path.join(bin, 'mv'), 'args=(); for a in "$@"; do [ "$a" = -T ] || args+=("$a"); done; exec /bin/mv -fh "${args[@]}"');
   }
+  if (failLink) script(path.join(bin, 'ln'), 'exit 1');
   for (const id of ['old', 'new']) {
     fs.mkdirSync(path.join(opt, 'releases', id));
     fs.writeFileSync(path.join(opt, 'releases', id, 'RELEASE.json'), '{}');
@@ -74,5 +75,17 @@ test('a failed database restore restarts the app and keeps the failure status', 
     assert.equal(result.status, 1, 'keeps the pg_restore exit status');
     const log = s.log();
     assert.match(log, /systemctl stop nb-demo.service[\s\S]*runuser[\s\S]*systemctl start nb-demo.service/);
+  } finally { s.cleanup(); }
+});
+
+test('rollback stops when the new link cannot be written', () => {
+  const s = sandbox({ failLink: true, previous: false });
+  try {
+    fs.symlinkSync(path.join(s.opt, 'releases', 'new'), path.join(s.opt, 'current'));
+    fs.writeFileSync(path.join(s.opt, 'previous'), `${path.join(s.opt, 'releases', 'old')}\n`);
+    const result = s.run('rollback.sh');
+    assert.notEqual(result.status, 0);
+    assert.equal(fs.readFileSync(path.join(s.opt, 'previous'), 'utf8'), `${path.join(s.opt, 'releases', 'old')}\n`, 'keeps the real rollback target');
+    assert.doesNotMatch(s.log(), /restart/);
   } finally { s.cleanup(); }
 });

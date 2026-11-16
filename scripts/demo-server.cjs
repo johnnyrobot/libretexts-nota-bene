@@ -13,8 +13,9 @@ async function main() {
   const db = require('../models');
   await db.ready;
   const server = http.createServer(createDemoApp({ app, clientDir: config.clientDir }));
-  const io = require('../socketapi').io;
-  io.attach(server, { cors: { origin: config.origin, credentials: true } });
+  // socket.io is deliberately not attached: native 'joined' is unauthenticated and new_thread /
+  // new_reply carry thread content to the whole room regardless of visibility. Routes still emit
+  // into the unattached server, which delivers nothing. Readers see others' posts on reload.
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(config.port, '127.0.0.1', resolve);
@@ -24,9 +25,11 @@ async function main() {
   const close = async () => {
     if (closing) return;
     closing = true;
-    io.close();
-    server.closeAllConnections();
+    // Stop accepting, let in-flight requests finish, force-close only after a bounded wait
+    // (systemd's stop timeout is longer).
+    const force = setTimeout(() => server.closeAllConnections(), 10000);
     await new Promise(resolve => server.close(resolve));
+    clearTimeout(force);
     await db.sequelize.close();
     process.exit(0);
   };

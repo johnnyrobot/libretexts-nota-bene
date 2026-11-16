@@ -49,6 +49,9 @@ closed GET /api/admin/
 closed POST /api/email/
 closed GET /embed_NB.js/
 closed GET /pdf4/rpc/
+# The native socket.io room join is unauthenticated, so the live-update channel is closed (CodeRabbit review).
+closed GET '/socket.io/?EIO=4&transport=polling'
+closed GET '/socket.io/?EIO=4&transport=websocket'
 code=$("${CURL[@]}" -o /dev/null -w '%{http_code}' -H 'Accept: application/json' "$ORIGIN/api/annotations/myClasses?url=x")
 [ "$code" = 401 ] && pass "annotations require sign-in" || fail "unauthenticated annotations ($code)"
 
@@ -62,8 +65,9 @@ NODE
   "${CURL[@]}" -f -o "$WORK/token" -H 'content-type: application/json' --data-binary "@$WORK/login.json" "$ORIGIN/api/users/login"
   rm -f "$WORK/login.json"
   TOKEN=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).token)' "$WORK/token")
-  URL=$(node -e 'process.stdout.write(encodeURIComponent(require(process.argv[1]).url))' "$OPERATOR/fixture.json")
-  COURSE=$(node -e 'process.stdout.write(require(process.argv[1]).courseId)' "$OPERATOR/fixture.json")
+  fixture() { node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))[process.argv[2]]))' "$OPERATOR/fixture.json" "$1"; }
+  URL=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$(fixture url)")
+  COURSE=$(fixture courseId)
   printf 'header = "Authorization: Bearer %s"\n' "$TOKEN" > "$WORK/auth"
   "${CURL[@]}" -f -K "$WORK/auth" -H 'Accept: application/json' -o "$WORK/classes" "$ORIGIN/api/annotations/myClasses?url=$URL"
   grep -q "\"$COURSE\"" "$WORK/classes" && pass "second synthetic account signs in and sees the demo course" || fail "authenticated course access"

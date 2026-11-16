@@ -1,6 +1,6 @@
 # Site body for the isolated native NB demo (LT-575).
 # Usage inside the site block:  import /etc/caddy/nb-demo.caddy <loopback-port>
-# Mirrors the browser isolation proven in staging: only same-origin assets, API and WebSocket.
+# Mirrors the browser isolation proven in staging: only same-origin assets and API.
 header {
 	Strict-Transport-Security "max-age=300"
 	X-Content-Type-Options "nosniff"
@@ -18,9 +18,10 @@ request_body {
 
 # Closed in the demo: open registration and the password-reset chain (an unauthenticated
 # user lookup returns reset identifiers), unrestricted user listing, admin and class email,
-# and upstream NB1 redirects to MIT hosts. Synthetic accounts are created on loopback only.
+# upstream NB1 redirects to MIT hosts, and socket.io (its room join is unauthenticated and
+# broadcasts thread content regardless of visibility). Synthetic accounts are created on loopback only.
 # Every path is a prefix match: native Express routes also answer with a trailing slash.
-@nb_demo_closed path /api/users/register* /api/users/forgotpassword* /api/users/getuser* /api/users/user/* /api/users/all* /api/admin* /api/email* /embed_NB.js* /c/* /f/* /pdf4/rpc* /content/* /settings*
+@nb_demo_closed path /api/users/register* /api/users/forgotpassword* /api/users/getuser* /api/users/user/* /api/users/all* /api/admin* /api/email* /embed_NB.js* /c/* /f/* /pdf4/rpc* /content/* /settings* /socket.io*
 respond @nb_demo_closed 404
 
 reverse_proxy 127.0.0.1:{args[0]}

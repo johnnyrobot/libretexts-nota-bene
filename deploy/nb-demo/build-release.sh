@@ -39,6 +39,8 @@ git -C "$CLIENT_REPO" archive "$CLIENT_SHA" | tar -x -C "$WORK/client"
 
 R="$WORK/release/$ID"
 git -C "$SERVER_REPO" archive "$SERVER_SHA" | tar -x -C "$R"
+# Original public development keys are source history, never runnable demo credentials.
+rm -rf "$R/dev_ssl_cert"
 cp -R "$WORK/server/dist" "$R/dist"
 mkdir -p "$R/client/js"
 cp -R "$WORK/client/public/style" "$WORK/client/public/emoji" "$R/client/"

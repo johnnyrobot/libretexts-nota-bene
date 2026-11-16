@@ -29,3 +29,5 @@ Generate speech with `scripts/textbook-speech.py READER_CHECKOUT STAGE` using a 
 The one authorized TestSprite run failed on the earlier broken chapter destination and used0.5credit. No retry was purchased. Later deterministic browser navigation/encoding and native posting evidence cover the corrected candidate; they are not a passing TestSprite result. Login probes on both original-client sample and current book produced no TypeError, so LT576's original report remains unclassified and is not called fixed.
 
 On the current host, run operator commands with the independently installed Node22 runtime: `sudo env PATH=/opt/nb-demo-runtime/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin COMMAND`. Existing units/runtime/environment remain in place; do not rerun first-host provisioning or replace shared Caddy configuration during an upgrade.
+
+The runnable tarball excludes the upstream public development certificate/key directory. Host secrets and runtime TLS remain generated/protected; source-fork ancestry is retained separately.

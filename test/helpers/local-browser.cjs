@@ -1,8 +1,13 @@
-async function localBrowser(browser, ports = ['3000', '3001']) {
+async function localBrowser(browser, explicitPorts) {
+  const ports = explicitPorts || ['3000', '3001'];
   const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block' });
   const blocked = new Set();
+  // NB_BASELINE_ORIGINS (comma-separated https origins) selects a staged public origin instead of the local pair.
+  // An explicit port list (network regression cases) always keeps the local guard.
+  const origins = !explicitPorts && process.env.NB_BASELINE_ORIGINS ? process.env.NB_BASELINE_ORIGINS.split(',') : null;
   const permitted = value => {
     const url = new URL(value);
+    if (origins) return origins.includes(url.origin.replace(/^wss:/, 'https:'));
     return url.hostname === '127.0.0.1' && ports.includes(url.port);
   };
   await context.route('**/*', async route => {

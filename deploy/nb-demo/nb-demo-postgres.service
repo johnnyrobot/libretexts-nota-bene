@@ -1,0 +1,24 @@
+[Unit]
+Description=Isolated PostgreSQL cluster for the native NB demo (loopback only)
+After=network.target
+
+[Service]
+Type=forking
+User=nbdemo-pg
+Group=nbdemo-pg
+UMask=0077
+EnvironmentFile=/etc/nb-demo/postgres.env
+ExecStart=/bin/sh -c 'exec "$NB_DEMO_PG_BIN/pg_ctl" -D /var/lib/nb-demo/pgdata -l /var/lib/nb-demo/postgres.log -o "-h 127.0.0.1 -p 55475 -k /var/lib/nb-demo/sockets" -w -t 60 start'
+ExecStop=/bin/sh -c 'exec "$NB_DEMO_PG_BIN/pg_ctl" -D /var/lib/nb-demo/pgdata -m fast -w stop'
+PIDFile=/var/lib/nb-demo/pgdata/postmaster.pid
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/nb-demo
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

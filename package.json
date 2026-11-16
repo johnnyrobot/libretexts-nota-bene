@@ -13,7 +13,7 @@
         "baseline:init": "node scripts/baseline-init.cjs",
         "baseline:start": "node scripts/baseline-server.cjs",
         "baseline:seed": "node scripts/baseline-seed.cjs",
-        "test:baseline:unit": "node --test test/baseline-*.test.cjs test/demo-config.test.cjs test/demo-host-scripts.test.cjs test/demo-seed.test.cjs",
+        "test:baseline:unit": "node --test test/baseline-*.test.cjs test/demo-config.test.cjs test/demo-host-scripts.test.cjs test/demo-seed.test.cjs test/textbook-http.test.cjs",
         "test:baseline": "playwright test -c playwright.baseline.config.cjs"
     },
     "engines": {

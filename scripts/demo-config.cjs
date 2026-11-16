@@ -52,10 +52,17 @@ function readDemoEnv(env) {
   return { origin, port, clientDir, databaseUrl, jwtSecret };
 }
 
-function createDemoApp({ app, clientDir }) {
+function createDemoApp({ app, clientDir, textbookDir }) {
   const express = require('express');
   const outer = express();
   outer.disable('x-powered-by');
+  if (textbookDir) {
+    if (!path.isAbsolute(textbookDir)) throw new Error('Textbook directory must be absolute.');
+    for (const prefix of ['books', '_assets']) {
+      outer.use('/' + prefix, express.static(path.join(textbookDir, prefix), { dotfiles: 'deny' }));
+      outer.use('/' + prefix, (_, res) => res.status(404).type('text/plain').send('Not found'));
+    }
+  }
   const client = express.Router();
   client.use(express.static(clientDir, { index: false, dotfiles: 'deny', fallthrough: true }));
   // Missing client assets end here instead of reaching NB's SPA history fallback.

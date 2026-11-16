@@ -1,0 +1,25 @@
+const {test,expect}=require('@playwright/test');
+const fs=require('node:fs');const path=require('node:path');
+const {localBrowser}=require('./helpers/local-browser.cjs');
+const state=process.env.NB_BASELINE_STATE;
+const settings=JSON.parse(fs.readFileSync(path.join(state,'settings.json')));
+const fixture=JSON.parse(fs.readFileSync(path.join(state,'fixture.json')));
+test('public chapter navigation, unauthorized denial, keyboard native editor and mobile layout',async({browser})=>{
+ const {context}=await localBrowser(browser);const page=await context.newPage();
+ const response=await page.goto(fixture.url);expect(response.status()).toBe(200);
+ await expect(page.getByRole('heading',{name:'13.01: Conflict Cooperation Morality and Fairness',exact:true})).toBeVisible();
+ const anonymous=await page.request.get(`${fixture.apiOrigin}/api/annotations/annotation?${new URLSearchParams({class:fixture.courseId,url:fixture.url})}`,{headers:{Accept:'application/json'}});expect(anonymous.status()).toBe(401);
+ await page.getByLabel('Username:',{exact:true}).fill(settings.users[0].username);await page.getByLabel('Password:',{exact:true}).fill(settings.users[0].password);
+ await page.locator('.login-form button[type=submit]').click();await expect(page.locator('#nb-sidebar')).toBeVisible();
+ const chapters=await page.evaluate(async f=>{const r=await fetch(`${f.apiOrigin}/api/annotations/annotation?${new URLSearchParams({class:f.courseId,url:new URL('/books/social_psychology/',f.url).href})}`,{headers:{Accept:'application/json',Authorization:'Bearer '+localStorage.getItem('nb.user')}});return {status:r.status,text:await r.text()};},fixture);
+ expect(chapters.status).toBe(200);expect(chapters.text).not.toContain('book-pointer2');
+ await page.getByLabel('Choose a passage to discuss').focus();await page.keyboard.press('Home');await page.keyboard.press('Tab');await page.keyboard.press('Enter');
+ await expect(page.locator('.editor-view')).toBeVisible();await expect(page.locator('.editor-view .ql-editor')).toBeFocused();
+ await page.screenshot({path:path.join(process.env.NB_BASELINE_RESULTS,'keyboard-desktop.png'),fullPage:false});
+ await page.keyboard.press('Escape');
+ await page.setViewportSize({width:390,height:844});
+ await expect(page.locator('#nb-sidebar')).toBeVisible();
+ const box=await page.locator('#nb-sidebar').boundingBox();expect(box.x).toBeGreaterThanOrEqual(0);expect(box.width).toBeLessThanOrEqual(390);
+ await page.screenshot({path:path.join(process.env.NB_BASELINE_RESULTS,'mobile.png'),fullPage:false});
+ await context.close();
+});

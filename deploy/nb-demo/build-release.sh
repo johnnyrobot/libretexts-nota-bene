@@ -9,6 +9,7 @@ ORIGIN=${1:?public origin, e.g. https://nb.libretexts.dev}
 CLIENT_REPO=${2:?client repository path}
 OUTPUT=${3:?output directory}
 CLIENT_SHA=${4:-f26b5f7b836c76f2f1196f67c1f733910343b394}
+BOOK_STAGE=${5:-}
 SERVER_REPO=$(cd "$(dirname "$0")/../.." && pwd)
 
 node -e 'require(process.argv[1]).parseOrigin(process.argv[2])' "$SERVER_REPO/scripts/demo-config.cjs" "$ORIGIN"
@@ -49,6 +50,11 @@ fs.writeFileSync(process.argv[4], rewriteClientBundle(fs.readFileSync(process.ar
 cp "$R/deploy/nb-demo/reading.html" "$R/client/reading.html"
 # models/index.js requires config.js before it reads DATABASE_URL.
 printf 'module.exports = { db: {} };\n' > "$R/config.js"
+
+if [ -n "$BOOK_STAGE" ]; then
+  python3 "$SERVER_REPO/scripts/textbook-package.py" "$BOOK_STAGE" "$R/textbook"
+fi
+mkdir "$R/uploads"
 
 sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 node -e '

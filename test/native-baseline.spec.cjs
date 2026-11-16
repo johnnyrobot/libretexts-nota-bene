@@ -22,6 +22,8 @@ const fixture = JSON.parse(fs.readFileSync(path.join(state, 'fixture.json'), 'ut
 const run = process.env.NB_BASELINE_RUN || 'native';
 if (!/^[a-z0-9-]+$/.test(run)) throw new Error('NB_BASELINE_RUN must contain lowercase letters, digits or hyphens.');
 const proofPath = path.join(state, `workflow-${run}.json`);
+const expectedQuote = process.env.NB_BASELINE_QUOTE || 'Readers can compare explanations';
+const passageSelector = process.env.NB_BASELINE_PASSAGE || '#passage';
 const question = `LT573 ${run}: How does this passage support cooperation?`;
 const reply = `LT573 ${run}: Comparing explanations makes our assumptions visible.`;
 
@@ -56,17 +58,18 @@ test('native client creates an annotation and another user replies, with persist
   const actions = { annotationCreated: false, replyCreated: false };
   const alice = await login(browser, settings.users[0]);
   if (!readOnly && !proof.annotationId) {
-    const positions = await alice.page.locator('#passage').evaluate(element => {
+    await alice.page.locator(passageSelector).first().scrollIntoViewIfNeeded();
+    const positions = await alice.page.locator(passageSelector).first().evaluate((element, length) => {
       const text = element.firstChild;
       const start = document.createRange(); start.setStart(text, 0); start.setEnd(text, 1);
-      const end = document.createRange(); end.setStart(text, 31); end.setEnd(text, 32);
+      const end = document.createRange(); end.setStart(text, length - 1); end.setEnd(text, length);
       const a = start.getBoundingClientRect(), b = end.getBoundingClientRect();
       return { x1: a.x + 0.2, y1: a.y + a.height / 2, x2: b.right - 0.2, y2: b.y + b.height / 2 };
-    });
+    }, expectedQuote.length);
     await alice.page.mouse.move(positions.x1, positions.y1);
     await alice.page.mouse.down();
     await alice.page.mouse.move(positions.x2, positions.y2, { steps: 20 });
-    expect(await alice.page.evaluate(() => window.getSelection().toString())).toBe('Readers can compare explanations');
+    expect(await alice.page.evaluate(() => window.getSelection().toString())).toBe(expectedQuote);
     await alice.page.mouse.up();
     const editor = alice.page.locator('.editor-view');
     await expect(editor).toBeVisible();

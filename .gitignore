@@ -33,3 +33,6 @@ yarn-error.log*
 
 scripts/ucd2023.js
 /public/.well-known/acme-challenge
+
+__pycache__/
+/node_modules

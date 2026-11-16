@@ -1,5 +1,3 @@
-const fs = require('node:fs');
-const path = require('node:path');
 async function localBrowser(browser, explicitPorts) {
   const ports = explicitPorts || ['3000', '3001'];
   const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block' });
@@ -18,20 +16,6 @@ async function localBrowser(browser, explicitPorts) {
       blocked.add(url.origin + url.pathname);
       return route.abort('blockedbyclient');
     }
-    // Large immutable speech files stream in the browser rather than buffering model weights
-    // twice in the test runner. HEAD still rejects redirects before the real fetch proceeds.
-    const ttsRoot = process.env.NB_BOOK_LISTEN === '1' && process.env.NB_BOOK_TTS_ROOT;
-    if (ttsRoot && url.pathname.startsWith('/_assets/tts/') && route.request().method() === 'GET') {
-      const root = fs.realpathSync(ttsRoot);
-      const file = path.resolve(root, decodeURIComponent(url.pathname.slice('/_assets/tts/'.length)));
-      if (!file.startsWith(root + path.sep)) return route.abort('blockedbyclient');
-      if (fs.existsSync(file) && fs.statSync(file).isFile()) {
-      if (!fs.realpathSync(file).startsWith(root + path.sep)) return route.abort('blockedbyclient');
-      const head = await context.request.head(url.href, { maxRedirects: 0 });
-      if (head.status() !== 200 || head.headers().location) return route.abort('blockedbyclient');
-      return route.continue();
-      }
-    }
     let response;
     try { response = await route.fetch({ maxRedirects: 0 }); }
     catch (error) {
@@ -41,9 +25,11 @@ async function localBrowser(browser, explicitPorts) {
     if (response.status() >= 300 && response.status() < 400 && response.headers().location) {
       const destination = new URL(response.headers().location, url);
       blocked.add(destination.origin + destination.pathname);
+      await response.dispose();
       return route.abort('blockedbyclient');
     }
-    return route.fulfill({ response });
+    try { return await route.fulfill({ response }); }
+    finally { await response.dispose(); }
   });
   await context.routeWebSocket('**/*', socket => {
     if (permitted(socket.url())) { socket.connectToServer(); return; }

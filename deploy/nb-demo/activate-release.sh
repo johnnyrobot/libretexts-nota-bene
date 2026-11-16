@@ -22,10 +22,11 @@ if systemctl enable nb-demo.service && systemctl restart nb-demo.service && "$HE
 fi
 echo "Health failed for $ID." >&2
 if [ -n "$PREVIOUS" ]; then
-  switch "$PREVIOUS"; systemctl restart nb-demo.service; "$HERE/health.sh" && echo "Restored $PREVIOUS" >&2
+  switch "$PREVIOUS"
+  if systemctl restart nb-demo.service && "$HERE/health.sh"; then echo "Restored $PREVIOUS" >&2; else echo "Rollback to $PREVIOUS is not healthy either." >&2; fi
 else
   # First activation failed: leave nothing pointing at the failed release.
-  systemctl disable --now nb-demo.service
+  systemctl disable --now nb-demo.service || true
   rm -f "$NB_DEMO_ROOT/current"
 fi
 exit 1

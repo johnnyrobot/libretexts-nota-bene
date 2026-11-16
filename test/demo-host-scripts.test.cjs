@@ -28,8 +28,10 @@ function sandbox({ failRestart = false, failRestore = false, previous = true }) 
   script(path.join(bin, 'systemctl'), `echo "systemctl $*" >> ${calls}\n${failRestart ? `if [ "$1" = restart ] && [ "$(readlink ${opt}/current)" = "${opt}/releases/new" ]; then exit 1; fi` : ''}\nexit 0`);
   script(path.join(bin, 'runuser'), `echo "runuser $*" >> ${calls}\ncat > /dev/null\nexit ${failRestore ? 1 : 0}`);
   script(path.join(bin, 'sha256sum'), 'exit 0');
-  // GNU mv -T is not on macOS; -h is its equivalent, keeping the rename semantics the scripts rely on.
-  script(path.join(bin, 'mv'), 'args=(); for a in "$@"; do [ "$a" = -T ] || args+=("$a"); done; exec /bin/mv -fh "${args[@]}"');
+  // BSD mv on macOS has no -T; -h is its equivalent. Linux (CI, the host) runs GNU mv unchanged.
+  if (process.platform === 'darwin') {
+    script(path.join(bin, 'mv'), 'args=(); for a in "$@"; do [ "$a" = -T ] || args+=("$a"); done; exec /bin/mv -fh "${args[@]}"');
+  }
   for (const id of ['old', 'new']) {
     fs.mkdirSync(path.join(opt, 'releases', id));
     fs.writeFileSync(path.join(opt, 'releases', id, 'RELEASE.json'), '{}');
@@ -51,6 +53,7 @@ test('activation restores the previous release when the service fails to restart
     assert.equal(result.status, 1, result.stderr);
     assert.equal(fs.readlinkSync(path.join(s.opt, 'current')), path.join(s.opt, 'releases', 'old'));
     assert.equal(fs.existsSync(path.join(s.opt, 'previous')), false, 'a failed release must not move the rollback target');
+    assert.match(s.log(), /systemctl restart nb-demo.service\nsystemctl restart nb-demo.service/, 'the failed restart and the rollback restart both ran');
   } finally { s.cleanup(); }
 });
 
@@ -68,7 +71,7 @@ test('a failed database restore restarts the app and keeps the failure status', 
   const s = sandbox({ failRestore: true });
   try {
     const result = s.run('restore-backup.sh', path.join(s.backups, 'b1'), '--confirm-nb-demo-restore');
-    assert.notEqual(result.status, 0);
+    assert.equal(result.status, 1, 'keeps the pg_restore exit status');
     const log = s.log();
     assert.match(log, /systemctl stop nb-demo.service[\s\S]*runuser[\s\S]*systemctl start nb-demo.service/);
   } finally { s.cleanup(); }

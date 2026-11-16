@@ -1,3 +1,7 @@
+# Nota Bene, LibreTexts development fork
+
+For the isolated native NB baseline, use [Native baseline](docs/NATIVE-BASELINE.md). The upstream setup notes below are preserved for provenance; they are not the verified local procedure.
+
 # Installation
 
 ## Local Dev

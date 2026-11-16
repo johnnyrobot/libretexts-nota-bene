@@ -4,7 +4,9 @@ const htmlToText = require('nodemailer-html-to-text').htmlToText
 
 let options
 
-if (process.env.NODE_ENV === 'dev' ) {
+if (process.env.NB_EMAIL_MODE === 'capture') {
+    options = { streamTransport: true, buffer: true, newline: 'unix' }
+} else if (process.env.NODE_ENV === 'dev' ) {
     options = {
         host: 'localhost',
         port: 1025,

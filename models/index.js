@@ -84,7 +84,7 @@ if (!global.hasOwnProperty('db')) {
     })
 }
 
-sequelize.sync().then(() => {
+global.db.ready = sequelize.sync().then(() => {
     global.db.Class.findAll().then(nb_classes =>
         nb_classes.forEach(nb_class => {
             const tagDefaults = [

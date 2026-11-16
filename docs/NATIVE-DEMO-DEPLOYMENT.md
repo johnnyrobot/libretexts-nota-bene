@@ -12,10 +12,10 @@ This is a synthetic demo. It does not establish institutional production readine
 | --- | --- |
 | App | `scripts/demo-server.cjs`: native `app.js` plus the built client under `/client`. Plain HTTP on `127.0.0.1:3475` only. Runs as the unprivileged `nbdemo` user, with outbound network denied by systemd (`IPAddressDeny=any`, loopback allowed). |
 | Database | Its own PostgreSQL 16 cluster under `/var/lib/nb-demo/pgdata`, on `127.0.0.1:55475` plus a private socket. It runs as a separate `nbdemo-pg` account. The app uses the non-superuser role `nb_demo` with password auth for database `nb_demo` only. |
-| Proxy | One Caddy site block that imports `/etc/caddy/nb-demo.caddy 3475`. It sets the HTTPS headers and CSP, limits request bodies to 1 MB, and closes the endpoints listed below. |
-| Releases | Immutable tarballs `nb-demo-<server12>-<client12>-<host>`, each with `RELEASE.json` and `MANIFEST.sha256`, unpacked root-owned under `/opt/nb-demo/releases`. `current` and `previous` are symlinks. |
+| Proxy | One Caddy site block that imports `/etc/caddy/nb-demo.caddy 3475`. It sets the HTTPS headers and CSP, limits request bodies to 1 MB, and closes the endpoints listed below. Each closed path is a prefix match, because native Express routes also answer with a trailing slash. |
+| Releases | Immutable tarballs `nb-demo-<server12>-<client12>-<host>`, each with `RELEASE.json` and `MANIFEST.sha256`, unpacked root-owned under `/opt/nb-demo/releases`. `current` is a symlink. `previous` is a plain file that names the last healthy release. |
 | Secrets | Generated on the host by `provision-host.sh` into `/etc/nb-demo/*.env` (mode 0640) and `/var/lib/nb-demo-operator/settings.json` (mode 0600). They are never in git or in the release. |
-| Accounts | Two fresh synthetic accounts, `demo_alice` and `demo_bob`, with `@demo.invalid` addresses and generated passwords. One course and one reading. No posts are seeded. |
+| Accounts | Two fresh synthetic accounts, `demo_alice` and `demo_bob`, with `@demo.invalid` addresses and generated passwords. One course and one reading. No annotations or replies are seeded. |
 | Email | Capture only (`NB_EMAIL_MODE=capture`). The SMTP path to `outgoing.csail.mit.edu` is never used. |
 
 ## Demonstrated blockers and how this packet handles them
@@ -60,17 +60,20 @@ This writes `<id>.tar.gz`, `<id>.tar.gz.sha256` and `<id>.RELEASE.json`. Release
 
 Every command after step 1 needs the Chief's explicit approval for that step. Nothing here touches another site, its data, or the shared Caddyfile beyond one added site block.
 
+**Getting the scripts onto the host.** Copy the release tarball and its `.sha256` file to the host. Check the hash with `sha256sum -c`. Then extract the tarball as the operator, outside `/opt/nb-demo`, for example `mkdir ~/nb-demo-packet && tar -xzf <id>.tar.gz -C ~/nb-demo-packet`. Run steps 1 to 4 from `~/nb-demo-packet/<id>/deploy/nb-demo/`. Don't extract under `/opt/nb-demo`, because provisioning refuses to run over an existing `/opt/nb-demo`. From step 5 on, run the root-owned copies under `/opt/nb-demo/releases/<id>/deploy/nb-demo/`.
+
 1. **Read-only preflight.** Run as an unprivileged user: `deploy/nb-demo/preflight-readonly.sh nb.libretexts.dev`. It writes nothing, and a unit test enforces that. The Chief accepts it when:
-   - Node is v22.
+   - Node is v22, and `node` and `npm` are on the service PATH (`/usr/bin` or `/usr/local/bin`; nvm and per-user installs don't work under systemd or sudo).
+   - The listed host tools are present.
    - PostgreSQL 16 binaries are present.
    - Ports 3475 and 55475 are free.
    - No `nbdemo` or `nbdemo-pg` users or paths exist.
    - DNS resolves to this host.
-   - Caddy is active and has no `nb.libretexts.dev` block.
+   - Caddy is v2.7 or later (the snippet uses `{args[0]}`), is active, and has no `nb.libretexts.dev` block.
 2. **DNS.** Point `nb.libretexts.dev` (A/AAAA) at the host.
 3. **Provision.** Run `sudo provision-host.sh https://nb.libretexts.dev <pg-bin-dir>`. It creates the users, the cluster, role and database, the secrets, and the operator settings. It installs the units without enabling or starting them.
 4. **Install the release.** Copy the tarball and run `sudo install-release.sh <tar.gz> <sha256>`. This verifies the hash, the manifest and the origin, then runs `npm ci --ignore-scripts` against the release lockfile. This is the full install that CI and the baseline use. Upstream lists runtime modules (`nodemailer`, `uuid`, `csv-parser`) as devDependencies, so `--omit=dev` cannot start the app. It does not switch releases.
-5. **Activate.** Run `sudo activate-release.sh <release-id>`. This enables PostgreSQL, takes a backup, switches `current` atomically, starts the app and runs `health.sh`. If health fails, it restores the previous release, or stops the app if there is none.
+5. **Activate.** Run `sudo activate-release.sh <release-id>`. This enables PostgreSQL, takes a backup, switches `current` atomically, starts the app and runs `health.sh`. It records `previous` only after the new release is healthy. If health fails, it switches back to the previous release. On a first activation with no previous release, it disables the app and removes `current`.
 6. **Seed once.** Run `sudo seed-demo.sh`. It refuses to run if `fixture.json` exists.
 7. **Caddy.** Copy `deploy/nb-demo/nb-demo.caddy` to `/etc/caddy/nb-demo.caddy`. Add this block to the Caddyfile:
 
@@ -81,7 +84,7 @@ Every command after step 1 needs the Chief's explicit approval for that step. No
    ```
 
    Run `caddy validate`, then reload.
-8. **Public smoke.** Run `smoke.sh https://nb.libretexts.dev /var/lib/nb-demo-operator`. It is read-only, apart from NB's own sign-in logging.
+8. **Public smoke.** Run `sudo smoke.sh https://nb.libretexts.dev /var/lib/nb-demo-operator` (the operator directory is root-only). It is read-only, apart from NB's own sign-in logging.
 9. **Raise HSTS.** After the site is stable, raise `max-age` from 300.
 10. **Decide on gating.** Decide whether to put basic auth or the existing `gate` snippet in front of the demo.
 

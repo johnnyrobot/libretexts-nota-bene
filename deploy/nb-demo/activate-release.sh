@@ -14,14 +14,19 @@ systemctl enable --now nb-demo-postgres.service
 "$HERE/backup.sh"
 switch() { ln -sfn "$1" "$NB_DEMO_ROOT/current.next" && mv -T "$NB_DEMO_ROOT/current.next" "$NB_DEMO_ROOT/current"; }
 switch "$TARGET"
-[ -n "$PREVIOUS" ] && printf '%s\n' "$PREVIOUS" > "$NB_DEMO_ROOT/previous"
 systemctl enable nb-demo.service
 systemctl restart nb-demo.service
-if "$HERE/health.sh"; then echo "Active: $ID"; exit 0; fi
+if "$HERE/health.sh"; then
+  # Record the rollback target only once the new release is healthy.
+  if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$TARGET" ]; then printf '%s\n' "$PREVIOUS" > "$NB_DEMO_ROOT/previous"; fi
+  echo "Active: $ID"; exit 0
+fi
 echo "Health failed for $ID." >&2
 if [ -n "$PREVIOUS" ]; then
   switch "$PREVIOUS"; systemctl restart nb-demo.service; "$HERE/health.sh" && echo "Restored $PREVIOUS" >&2
 else
-  systemctl stop nb-demo.service
+  # First activation failed: leave nothing pointing at the failed release.
+  systemctl disable --now nb-demo.service
+  rm -f "$NB_DEMO_ROOT/current"
 fi
 exit 1

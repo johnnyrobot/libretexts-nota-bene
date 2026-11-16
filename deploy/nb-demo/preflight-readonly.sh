@@ -19,13 +19,21 @@ free -m 2>/dev/null | head -2
 section "Node (demo requires v22.x; verified v22.23.4)"
 if have node; then node -v; command -v node; else echo "node: MISSING"; fi
 if have npm; then npm -v; else echo "npm: MISSING"; fi
+# systemd and sudo resolve node/npm only on their restricted PATH (no nvm or per-user installs).
+for bin in node npm; do
+  found=no; for d in /usr/bin /usr/local/bin; do [ -x "$d/$bin" ] && found="$d/$bin"; done
+  echo "$bin on service PATH: $found"
+done
+
+section "Host tools used by provisioning and scripts"
+for tool in openssl runuser sha256sum curl ss tar getent; do have "$tool" && echo "$tool: ok" || echo "$tool: MISSING"; done
 
 section "PostgreSQL binaries (demo needs initdb, pg_ctl, pg_dump, pg_restore, psql, pg_isready; verified 16)"
 for dir in /usr/lib/postgresql/*/bin /usr/pgsql-*/bin; do
   [ -x "$dir/initdb" ] && echo "$dir: $("$dir/initdb" --version)"
 done
 
-section "Caddy"
+section "Caddy (snippet uses {args[0]}: requires v2.7 or later)"
 if have caddy; then caddy version; command -v caddy; else echo "caddy: MISSING"; fi
 have systemctl && systemctl is-active caddy 2>/dev/null
 f=/etc/caddy/Caddyfile

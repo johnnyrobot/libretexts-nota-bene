@@ -11,7 +11,7 @@ const operatorDir = process.env.NB_DEMO_OPERATOR_DIR;
 if (!operatorDir || !path.isAbsolute(operatorDir)) throw new Error('Set absolute NB_DEMO_OPERATOR_DIR.');
 const origin = parseOrigin(process.env.NB_DEMO_ORIGIN);
 const port = Number(process.env.NB_DEMO_PORT);
-if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Set NB_DEMO_PORT.');
+if (!/^\d+$/.test(process.env.NB_DEMO_PORT || '') || port < 1024 || port > 65535) throw new Error('Set NB_DEMO_PORT.');
 const receipt = path.join(operatorDir, 'fixture.json');
 if (fs.existsSync(receipt)) throw new Error('Demo fixture already exists. Restart without reseeding.');
 const settings = JSON.parse(fs.readFileSync(path.join(operatorDir, 'settings.json'), 'utf8'));
@@ -56,7 +56,7 @@ async function seed() {
   const classes = await request('GET', `/api/annotations/myClasses?url=${encodeURIComponent(url)}`, null, accounts[1].token);
   assert.ok(classes.some(item => item.id === course.id), 'Second account must have access through native membership');
   fs.writeFileSync(receipt, JSON.stringify({ courseId: course.id, url, apiOrigin: origin, users: accounts.map(({ id }) => id) }, null, 2), { flag: 'wx', mode: 0o600 });
-  console.log('Two synthetic demo accounts, native course/membership and reading created. No posts seeded.');
+  console.log('Two synthetic demo accounts, native course/membership and reading created. No annotations or replies seeded.');
 }
 
 seed().catch(error => { console.error(error.message); process.exit(1); });

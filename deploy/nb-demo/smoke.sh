@@ -40,6 +40,15 @@ closed GET /api/admin/users
 closed POST /api/email/class
 closed GET /embed_NB.js
 closed GET /c/1
+# Express routes are not strict, so a trailing slash reaches the same handler (LT-575 review).
+closed POST /api/users/register/
+closed POST /api/users/forgotpassword/
+closed POST /api/users/getuser/
+closed GET /api/users/all/
+closed GET /api/admin/
+closed POST /api/email/
+closed GET /embed_NB.js/
+closed GET /pdf4/rpc/
 code=$("${CURL[@]}" -o /dev/null -w '%{http_code}' -H 'Accept: application/json' "$ORIGIN/api/annotations/myClasses?url=x")
 [ "$code" = 401 ] && pass "annotations require sign-in" || fail "unauthenticated annotations ($code)"
 

@@ -19,7 +19,8 @@ request_body {
 # Closed in the demo: open registration and the password-reset chain (an unauthenticated
 # user lookup returns reset identifiers), unrestricted user listing, admin and class email,
 # and upstream NB1 redirects to MIT hosts. Synthetic accounts are created on loopback only.
-@nb_demo_closed path /api/users/register /api/users/forgotpassword /api/users/getuser /api/users/user/* /api/users/all /api/admin /api/admin/* /api/email /api/email/* /embed_NB.js /c/* /f/* /pdf4/rpc* /content/* /settings*
+# Every path is a prefix match: native Express routes also answer with a trailing slash.
+@nb_demo_closed path /api/users/register* /api/users/forgotpassword* /api/users/getuser* /api/users/user/* /api/users/all* /api/admin* /api/email* /embed_NB.js* /c/* /f/* /pdf4/rpc* /content/* /settings*
 respond @nb_demo_closed 404
 
 reverse_proxy 127.0.0.1:{args[0]}

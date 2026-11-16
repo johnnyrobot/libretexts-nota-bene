@@ -132,3 +132,14 @@ test('proxy CSP keeps every source same-origin and allows only the eval the nati
   assert.deepEqual(directives['object-src'], ["'none'"]);
   assert.doesNotMatch(csp, /https?:|wss?:|\*/, 'no third-party or wildcard sources');
 });
+
+test('proxy closes each unsafe native path as a prefix, including trailing-slash forms', () => {
+  const caddy = fs.readFileSync(path.join(__dirname, '..', 'deploy', 'nb-demo', 'nb-demo.caddy'), 'utf8');
+  const paths = caddy.match(/^@nb_demo_closed path (.+)$/m)[1].trim().split(/\s+/);
+  // Express routes are not strict: POST /api/users/getuser/ reached the reset-token handler in staging.
+  for (const closed of paths) assert.ok(closed.endsWith('*'), `${closed} must be a prefix match`);
+  for (const route of ['/api/users/register', '/api/users/forgotpassword', '/api/users/getuser', '/api/users/user/',
+    '/api/users/all', '/api/admin', '/api/email', '/embed_NB.js', '/c/', '/f/', '/pdf4/rpc', '/content/', '/settings']) {
+    assert.ok(paths.includes(`${route}*`), `${route} must be closed`);
+  }
+});

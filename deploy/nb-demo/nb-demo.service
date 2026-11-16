@@ -1,0 +1,31 @@
+[Unit]
+Description=Isolated native NB demo (loopback HTTP behind Caddy)
+Requires=nb-demo-postgres.service
+After=nb-demo-postgres.service
+
+[Service]
+Type=simple
+User=nbdemo
+Group=nbdemo
+UMask=0077
+WorkingDirectory=/opt/nb-demo/current
+EnvironmentFile=/etc/nb-demo/nb-demo.env
+ExecStart=/usr/bin/env node /opt/nb-demo/current/scripts/demo-server.cjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# No outbound network: no SMTP, no MIT endpoints; only the loopback database and proxy.
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+# Local staging only. Uses Caddy's internal CA without installing trust, its own storage,
+# and no admin endpoint. The site body is the same file installed on the host.
+{
+	admin off
+	local_certs
+	skip_install_trust
+	auto_https disable_redirects
+	http_port {$NB_STAGE_HTTP_PORT}
+	https_port {$NB_STAGE_HTTPS_PORT}
+	storage file_system {$NB_STAGE_CADDY_DATA}
+}
+
+nb.localhost:{$NB_STAGE_HTTPS_PORT} {
+	import {$NB_STAGE_SNIPPET} {$NB_DEMO_PORT}
+}

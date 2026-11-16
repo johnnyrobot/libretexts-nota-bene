@@ -39,8 +39,8 @@ async function login(browser, account) {
 }
 
 async function apiRead(page) {
-  return page.evaluate(async ({ courseId, url }) => {
-    const response = await fetch(`https://127.0.0.1:3000/api/annotations/annotation?${new URLSearchParams({ class: courseId, url })}`, {
+  return page.evaluate(async ({ courseId, url, apiOrigin }) => {
+    const response = await fetch(`${apiOrigin || 'https://127.0.0.1:3000'}/api/annotations/annotation?${new URLSearchParams({ class: courseId, url })}`, {
       credentials: 'include',
       headers: { Accept: 'application/json', Authorization: `Bearer ${localStorage.getItem('nb.user')}` },
     });

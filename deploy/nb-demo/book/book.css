@@ -22,3 +22,8 @@ html[data-nb-textbook] .tts-bar { z-index:2147483647!important; }
 @media(max-width:760px) { html[data-nb-textbook] .tts-bar { bottom:48vh; max-width:100%; } }
 
 html[data-nb-textbook] main .ch-grid, html[data-nb-textbook] main .mt-sortable-listings-container { max-width:100%; }
+/* Reader mode uses a transient DOM. Discussions resume on the published DOM after exit. */
+html[data-nb-textbook][data-tts-reader=on] #nb-app-wrapper,
+html[data-nb-textbook][data-nb-reader-restoring=true] #nb-app-wrapper { display:none!important; }
+html[data-nb-textbook][data-tts-reader=on] body { padding-right:0; padding-bottom:0; }
+html[data-nb-textbook][data-tts-reader=on] .tts-bar { right:0; bottom:0; }

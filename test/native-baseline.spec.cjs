@@ -30,7 +30,8 @@ const reply = `LT573 ${run}: Comparing explanations makes our assumptions visibl
 async function login(browser, account) {
   const { context, blocked } = await localBrowser(browser);
   const page = await context.newPage();
-  await page.goto(fixture.url);
+  const readingUrl=new URL(fixture.url);if(process.env.NB_BOOK_ENCODED==='1')readingUrl.pathname=readingUrl.pathname.replace(/:/g,'%3A');
+  await page.goto(readingUrl.href);
   await page.getByLabel('Username:', { exact: true }).fill(account.username);
   await page.getByLabel('Password:', { exact: true }).fill(account.password);
   const loaded = page.waitForResponse(res => res.url().includes('/api/annotations/annotation?') && res.status() === 200);

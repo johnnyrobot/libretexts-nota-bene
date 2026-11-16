@@ -18,7 +18,7 @@ def build(reader,stage):
     from pipeline.tokenize import SENTENCE_SPLIT_VERSION
     report=[]
     for page in sorted((stage/'books/social_psychology').rglob('index.html')):
-        html=page.read_text()
+        html=page.read_bytes().decode('utf-8')
         manifest=build_manifest(html,page_id=str(page.parent.relative_to(stage)),title=page.parent.name)
         if manifest['stats']['sentences']:
             expected=hashlib.sha256(f'v{SENTENCE_SPLIT_VERSION}\0'.encode()+html.encode()).hexdigest()

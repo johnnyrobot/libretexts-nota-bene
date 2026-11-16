@@ -10,11 +10,14 @@ function membership(course,id){
  return {staff, member:staff || (course.GlobalSection?.MemberStudents||[]).some(x=>x.id===id)};
 }
 function visible(annotation,id,staff){
- return annotation.author_id===id || annotation.visibility==='EVERYONE' || (staff && annotation.visibility==='INSTRUCTORS');
+ return (annotation.author_id || annotation.Author?.id)===id || annotation.visibility==='EVERYONE' || (staff && annotation.visibility==='INSTRUCTORS');
 }
 module.exports = async function authorizeDiscussion(req,res,next){
  if(/^\/myClasses\/?$/i.test(req.path))return next();
  try {
+  const suppliedClasses=[req.query.class,req.query.class_id,req.body?.class].filter(x=>x!==undefined);
+  const suppliedUrls=[req.query.url,req.query.source_url,req.body?.url].filter(x=>x!==undefined);
+  if(suppliedClasses.some(x=>typeof x!=='string' || x!==suppliedClasses[0]) || suppliedUrls.some(x=>typeof x!=='string' || x!==suppliedUrls[0]))return res.sendStatus(403);
   const match=req.path.match(/^\/(?:media\/)?(annotation|reply|seen|star|replyRequest|bookmark)\/([^/]+)\/?$/i);
   let course,source,target,thread;
   if(/^\/specific_thread\/?$/i.test(req.path)) {
@@ -46,3 +49,5 @@ module.exports = async function authorizeDiscussion(req,res,next){
   return next();
  }catch{return res.sendStatus(400);}
 };
+
+module.exports.canRead=visible;

@@ -633,11 +633,24 @@ router.get('/specific_thread', async (req, res) => {
             ]
         })
 
+        const canRead=require('../auth/native-discussions').canRead;
+        const staff=classInstructors.has(req.user.id) || classTAs.has(req.user.id);
+        const byId=new Map(thread.AllAnnotations.map(annotation=>[annotation.id,annotation]));
+        const readable=annotation=>{
+            const seen=new Set();let current=annotation;
+            while(current){
+                if(seen.has(current.id) || !canRead(current,req.user.id,staff))return false;
+                seen.add(current.id);
+                if(!current.Parent)return true;
+                current=byId.get(current.Parent.id) || (current.Parent.id===thread.HeadAnnotation.id ? thread.HeadAnnotation : null);
+            }
+            return false;
+        };
         let annotations = {}
         let headAnnotation = utils.createAnnotationFromThread(thread.Location.HtmlLocation, thread.HeadAnnotation, thread.SeenUsers, classInstructors, classTAs, req.user.id, follows)
 
         thread.AllAnnotations.forEach((annotation) => {
-            if (annotation.Parent) {
+            if (annotation.Parent && readable(annotation)) {
                 if (!(annotation.Parent.id in annotations)) {
                     annotations[annotation.Parent.id] = []
                 }

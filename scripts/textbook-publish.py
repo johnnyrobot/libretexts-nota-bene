@@ -19,6 +19,8 @@ def publish(source, output):
     if source == output or source in output.parents or output in source.parents:
         raise ValueError('Input and output must be disjoint.')
     book = source / BOOK
+    if book.is_symlink():
+        raise ValueError('Symlinked collection is not a frozen input.')
     if not book.is_dir():
         raise ValueError('Social Psychology collection missing.')
     pages = sorted(book.rglob('index.html'))

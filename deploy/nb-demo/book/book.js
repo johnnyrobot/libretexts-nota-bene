@@ -13,7 +13,7 @@
   paragraphs.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${p.textContent.trim().slice(0,100)}`;select.append(o);});
   const button=document.createElement('button');button.type='button';button.textContent='Discuss selected passage';
   const help=document.createElement('p');help.setAttribute('role','status');
-  const signedInIdleHelp='Choose a passage above, then Discuss selected passage to open the NB editor.';
+  const signedInIdleHelp='Select text to discuss, or use the keyboard chooser. Live updates are unavailable in this demo. Reload the page to see new replies.';
   const signedOutIdleHelp='Sign in to Nota Bene in the panel to discuss with your course. You can also select text directly in the reading.';
   const readerIdleHelp='Exit Reader Mode to discuss passages. Your NB discussions remain saved.';
   const idleHelp=()=>document.documentElement.dataset.ttsReader==='on'

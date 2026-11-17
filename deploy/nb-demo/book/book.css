@@ -29,4 +29,4 @@ html[data-nb-textbook][data-nb-reader-restoring=true] #nb-app-wrapper { display:
 html[data-nb-textbook][data-tts-reader=on] body { padding-right:0; padding-bottom:0; }
 html[data-nb-textbook][data-tts-reader=on] .tts-bar { right:0; bottom:0; }
 
-.nb-book-status { margin:8px 16px 16px 40px; font:16px/1.5 system-ui; }
+html[data-nb-textbook] .nb-book-status { margin:8px 16px 16px 40px; font:16px/1.5 system-ui; }

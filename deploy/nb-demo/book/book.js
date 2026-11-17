@@ -31,7 +31,7 @@
     document.body.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
     requestAnimationFrame(() => document.querySelector('#nb-app .editor-view .ql-editor')?.focus());
   });
-  details.append(summary,label,select,button,help);main.before(details);
+  details.append(summary,label,select,button);help.className='nb-book-status';main.before(details,help);
   document.addEventListener('nb-anchor-unavailable',()=>{help.textContent='A discussion cannot be anchored to this exact publication. Its saved record is preserved.';});
   document.addEventListener('click',event=>{
     if(!event.target.closest('#tts-enter'))return;

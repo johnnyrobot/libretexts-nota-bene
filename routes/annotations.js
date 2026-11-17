@@ -551,6 +551,7 @@ async function fetchSpecificThread(classId, sourceUrl, threadId) {
             ]
         })
 
+        if(!readable(thread.HeadAnnotation)) return res.sendStatus(403);
         let annotations = {}
         let headAnnotation = utils.createAnnotationFromThread(thread.Location.HtmlLocation, thread.HeadAnnotation, thread.SeenUsers, classInstructors, classTAs)
 

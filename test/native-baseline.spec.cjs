@@ -22,8 +22,9 @@ const fixture = JSON.parse(fs.readFileSync(path.join(state, 'fixture.json'), 'ut
 const run = process.env.NB_BASELINE_RUN || 'native';
 if (!/^[a-z0-9-]+$/.test(run)) throw new Error('NB_BASELINE_RUN must contain lowercase letters, digits or hyphens.');
 const proofPath = path.join(state, `workflow-${run}.json`);
-const expectedQuote = process.env.NB_BASELINE_QUOTE || 'Readers can compare explanations';
-const passageSelector = process.env.NB_BASELINE_PASSAGE || '#passage';
+const isBook=new URL(fixture.url).pathname.startsWith('/books/social_psychology/');
+const expectedQuote = process.env.NB_BASELINE_QUOTE || (isBook?'Whether we cooperate':'Readers can compare explanations');
+const passageSelector = process.env.NB_BASELINE_PASSAGE || (isBook?'#main-content p':'#passage');
 const question = `LT573 ${run}: How does this passage support cooperation?`;
 const reply = `LT573 ${run}: Comparing explanations makes our assumptions visible.`;
 

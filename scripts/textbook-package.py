@@ -6,10 +6,8 @@ from pathlib import Path
 import shutil
 import sys
 
-def package(source, output):
-    source, output = Path(source).resolve(), Path(output).resolve()
-    if output.exists() or source == output or source in output.parents or output in source.parents:
-        raise ValueError('Use fresh disjoint output')
+def validate(source):
+    source=Path(source).resolve()
     manifest = json.loads((source/'textbook-manifest.json').read_text())
     if manifest['book'] != 'social_psychology' or not manifest['pages']:
         raise ValueError('Unexpected book')
@@ -31,11 +29,29 @@ def package(source, output):
     for folder in ('books', '_assets'):
         if (source/folder).is_symlink() or any(p.is_symlink() for p in (source/folder).rglob('*')):
             raise ValueError('No symlinked content')
+
+def identity(source):
+    source=Path(source).resolve()
+    validate(source)
+    files=[source/'textbook-manifest.json']
+    if (source/'speech-provenance.json').exists():files.append(source/'speech-provenance.json')
+    for folder in ('books','_assets'):files.extend(p for p in (source/folder).rglob('*') if p.is_file())
+    digest=hashlib.sha256()
+    for file in sorted(files,key=lambda p:p.relative_to(source).as_posix()):
+        digest.update(file.relative_to(source).as_posix().encode('utf-8')+b'\0')
+        digest.update(hashlib.file_digest(file.open('rb'),'sha256').digest())
+    return digest.hexdigest()
+
+def package(source,output):
+    source,output=Path(source).resolve(),Path(output).resolve()
+    if output.exists() or source==output or source in output.parents or output in source.parents:raise ValueError('Use fresh disjoint output')
+    validate(source)
     output.mkdir(parents=True)
     for folder in ('books', '_assets'):
         shutil.copytree(source/folder, output/folder)
     shutil.copy2(source/'textbook-manifest.json', output/'textbook-manifest.json')
     if (source/'speech-provenance.json').exists():shutil.copy2(source/'speech-provenance.json',output/'speech-provenance.json')
 
-if __name__ == '__main__':
-    package(sys.argv[1],sys.argv[2])
+if __name__=='__main__':
+    if sys.argv[1]=='--identity':print(identity(sys.argv[2]))
+    else:package(sys.argv[1],sys.argv[2])

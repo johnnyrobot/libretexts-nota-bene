@@ -1,7 +1,8 @@
 const {test,expect}=require('@playwright/test');const fs=require('node:fs');const path=require('node:path');const {Client}=require('pg');
-const state=process.env.NB_BASELINE_STATE, settings=JSON.parse(fs.readFileSync(path.join(state,'settings.json'))),fixture=JSON.parse(fs.readFileSync(path.join(state,'fixture.json'))),proof=JSON.parse(fs.readFileSync(path.join(state,`workflow-${process.env.NB_BOOK_PROOF_RUN || 'book-pointer2'}.json`)));
+const state=process.env.NB_BASELINE_STATE, settings=JSON.parse(fs.readFileSync(path.join(state,'settings.json'))),fixture=JSON.parse(fs.readFileSync(path.join(state,'fixture.json')));
 fixture.apiOrigin=process.env.NB_TEST_API_ORIGIN || fixture.apiOrigin;
 test('course students cannot read another author private replies through specific thread',async({request})=>{
+ const proof=JSON.parse(fs.readFileSync(path.join(state,`workflow-${process.env.NB_BOOK_PROOF_RUN || process.env.NB_BASELINE_RUN || 'native'}.json`)));
  const sign=async account=>{const r=await request.post(fixture.apiOrigin+'/api/users/login',{data:{username:account.username,password:account.password}});expect(r.status()).toBe(200);return {Accept:'application/json',Authorization:'Bearer '+(await r.json()).token};};const alice=await sign(settings.users[0]),bob=await sign(settings.users[1]);
  const marker='LT577 owner-private reply fixture';const record=path.join(state,'private-reply-fixture.json');
  if(!fs.existsSync(record)){const r=await request.post(fixture.apiOrigin+'/api/annotations/reply/'+proof.annotationId,{headers:alice,data:{class:fixture.courseId,url:fixture.url,content:marker,visibility:'MYSELF',anonymity:'IDENTIFIED',tags:[],userTags:[]}});expect(r.status()).toBe(200);fs.writeFileSync(record,JSON.stringify(await r.json()),{mode:0o600,flag:'wx'});}

@@ -38,6 +38,10 @@ class Publication(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 publisher.publish(source, output)
             package = SCRIPT.with_name('textbook-package.py')
+            first_id=subprocess.check_output([sys.executable,str(package),'--identity',str(output)])
+            self.assertEqual(first_id,subprocess.check_output([sys.executable,str(package),'--identity',str(output)]))
+            (output/'_assets/figure.png').write_bytes(b'changed-image')
+            self.assertNotEqual(first_id,subprocess.check_output([sys.executable,str(package),'--identity',str(output)]))
             result = subprocess.run([sys.executable, str(package), str(output), str(root/'release')], capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             (output/'books/social_psychology/13.01/index.html').write_text('changed reading')

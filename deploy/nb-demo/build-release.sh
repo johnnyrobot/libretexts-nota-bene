@@ -20,7 +20,13 @@ fi
 SERVER_SHA=$(git -C "$SERVER_REPO" rev-parse HEAD)
 CLIENT_SHA=$(git -C "$CLIENT_REPO" rev-parse --verify "$CLIENT_SHA^{commit}")
 HOST=$(node -e 'console.log(new URL(process.argv[1]).host.replace(/[^A-Za-z0-9.-]/g, "-"))' "$ORIGIN")
-ID="nb-demo-${SERVER_SHA:0:12}-${CLIENT_SHA:0:12}-${HOST}"
+BOOK_DIGEST=''
+BOOK_SUFFIX=''
+if [ -n "$BOOK_STAGE" ]; then
+  BOOK_DIGEST=$(python3 "$SERVER_REPO/scripts/textbook-package.py" --identity "$BOOK_STAGE")
+  BOOK_SUFFIX="-book-${BOOK_DIGEST:0:12}"
+fi
+ID="nb-demo-${SERVER_SHA:0:12}-${CLIENT_SHA:0:12}-${HOST}${BOOK_SUFFIX}"
 mkdir -p "$OUTPUT"
 OUTPUT=$(cd "$OUTPUT" && pwd)
 if [ -e "$OUTPUT/$ID" ] || [ -e "$OUTPUT/$ID.tar.gz" ]; then
@@ -60,13 +66,13 @@ mkdir "$R/uploads"
 
 sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 node -e '
-const [id, origin, serverSha, clientSha, serverLock, clientLock, built, rewritten, dist] = process.argv.slice(1);
-console.log(JSON.stringify({ id, origin, serverSha, clientSha,
+const [id, origin, serverSha, clientSha, serverLock, clientLock, built, rewritten, dist, bookDigest] = process.argv.slice(1);
+console.log(JSON.stringify({ id, origin, serverSha, clientSha, bookPublicationSha256: bookDigest || null,
   sha256: { serverPackageLock: serverLock, clientPackageLock: clientLock, clientBundleBuilt: built, clientBundleRewritten: rewritten, serverDistIndex: dist },
   buildRuntime: { node: process.version, npm: require("child_process").execSync("npm -v").toString().trim(), platform: process.platform + "-" + process.arch },
   hostInstall: "npm ci --ignore-scripts from serverPackageLock (runtime modules are listed as devDependencies upstream)" }, null, 2));
 ' "$ID" "$ORIGIN" "$SERVER_SHA" "$CLIENT_SHA" "$(sha "$R/package-lock.json")" "$(sha "$WORK/client/package-lock.json")" \
-  "$(sha "$WORK/client/public/js/bundle.js")" "$(sha "$R/client/js/bundle.js")" "$(sha "$R/dist/index.html")" > "$R/RELEASE.json"
+  "$(sha "$WORK/client/public/js/bundle.js")" "$(sha "$R/client/js/bundle.js")" "$(sha "$R/dist/index.html")" "$BOOK_DIGEST" > "$R/RELEASE.json"
 (cd "$R" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256) > "$WORK/MANIFEST.sha256"
 mv "$WORK/MANIFEST.sha256" "$R/MANIFEST.sha256"
 

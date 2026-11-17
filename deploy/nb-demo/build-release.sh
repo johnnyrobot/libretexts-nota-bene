@@ -61,6 +61,8 @@ printf 'module.exports = { db: {} };\n' > "$R/config.js"
 
 if [ -n "$BOOK_STAGE" ]; then
   python3 "$SERVER_REPO/scripts/textbook-package.py" "$BOOK_STAGE" "$R/textbook"
+  COPIED_BOOK_DIGEST=$(python3 "$SERVER_REPO/scripts/textbook-package.py" --identity "$R/textbook")
+  [ "$COPIED_BOOK_DIGEST" = "$BOOK_DIGEST" ] || { echo "Publication changed during build; preserve inputs and start a fresh release." >&2; exit 1; }
 fi
 mkdir "$R/uploads"
 

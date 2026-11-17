@@ -1,15 +1,25 @@
-// Keyboard alternative: the user explicitly chooses a real paragraph, then NB opens its editor.
+// Primary way to discuss a passage is selecting text directly, which the NB panel itself handles.
+// This section is the keyboard alternative for paragraphs that are hard to drag-select, so it stays
+// collapsed by default behind a disclosure, matching the equivalent control already shipped at
+// library.libretexts.dev ("Expand Choose a passage with the keyboard").
 (() => {
   const main = document.querySelector('#main-content');
   if (!main) return;
   const paragraphs = [...main.querySelectorAll('p')].filter(p => p.textContent.trim());
-  const section = document.createElement('section'); section.className='nb-book-controls';
-  section.setAttribute('aria-label','Discuss a textbook passage');
+  const details = document.createElement('details'); details.className='nb-book-controls';
+  const summary = document.createElement('summary'); summary.textContent='Choose a passage with the keyboard';
   const label=document.createElement('label'); label.textContent='Choose a passage to discuss';
   const select=document.createElement('select'); select.id='nb-book-passage';label.htmlFor=select.id;
   paragraphs.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${p.textContent.trim().slice(0,100)}`;select.append(o);});
   const button=document.createElement('button');button.type='button';button.textContent='Discuss selected passage';
-  const help=document.createElement('p');help.setAttribute('role','status');help.textContent='Sign in to Nota Bene to discuss with your course. You can also select text directly in the reading.';
+  const help=document.createElement('p');help.setAttribute('role','status');
+  const signedInIdleHelp='Choose a passage above, then Discuss selected passage to open the NB editor.';
+  const signedOutIdleHelp='Sign in to Nota Bene in the panel to discuss with your course. You can also select text directly in the reading.';
+  const readerIdleHelp='Exit Reader Mode to discuss passages. Your NB discussions remain saved.';
+  const idleHelp=()=>document.documentElement.dataset.ttsReader==='on'
+    ? readerIdleHelp
+    : (document.documentElement.dataset.nbSignedIn==='true' ? signedInIdleHelp : signedOutIdleHelp);
+  help.textContent=idleHelp();
   button.addEventListener('click',()=>{
     const p=paragraphs[Number(select.value)];if(!p?.isConnected)return;
     p.scrollIntoView({block:'center'});
@@ -21,7 +31,7 @@
     document.body.dispatchEvent(new MouseEvent('mouseup', {bubbles:true}));
     requestAnimationFrame(() => document.querySelector('#nb-app .editor-view .ql-editor')?.focus());
   });
-  section.append(label,select,button,help);main.before(section);
+  details.append(summary,label,select,button,help);main.before(details);
   document.addEventListener('nb-anchor-unavailable',()=>{help.textContent='A discussion cannot be anchored to this exact publication. Its saved record is preserved.';});
   document.addEventListener('click',event=>{
     if(!event.target.closest('#tts-enter'))return;
@@ -35,12 +45,12 @@
   let reading=document.documentElement.dataset.ttsReader==='on';
   new MutationObserver(()=>{
     const active=document.documentElement.dataset.ttsReader==='on';button.disabled=active;select.disabled=active;
-    if(active)help.textContent='Exit Reader Mode to discuss passages. Your NB discussions remain saved.';
+    help.textContent=idleHelp();
     if(reading && !active){
       document.documentElement.dataset.nbReaderRestoring='true';
       try{sessionStorage.setItem(restoreKey,JSON.stringify({page:location.pathname,y:window.scrollY}));}catch{}
       location.reload();
     }
     reading=active;
-  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-tts-reader']});
+  }).observe(document.documentElement,{attributes:true,attributeFilter:['data-tts-reader','data-nb-signed-in']});
 })();

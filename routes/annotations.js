@@ -551,7 +551,6 @@ async function fetchSpecificThread(classId, sourceUrl, threadId) {
             ]
         })
 
-        if(!readable(thread.HeadAnnotation)) return res.sendStatus(403);
         let annotations = {}
         let headAnnotation = utils.createAnnotationFromThread(thread.Location.HtmlLocation, thread.HeadAnnotation, thread.SeenUsers, classInstructors, classTAs)
 
@@ -636,6 +635,7 @@ router.get('/specific_thread', async (req, res) => {
         })
 
         const readable=require('../auth/native-discussions').threadReader(thread.AllAnnotations,thread.HeadAnnotation,req.user.id,classInstructors.has(req.user.id) || classTAs.has(req.user.id));
+        if(!readable(thread.HeadAnnotation)) return res.sendStatus(403);
         let annotations = {}
         let headAnnotation = utils.createAnnotationFromThread(thread.Location.HtmlLocation, thread.HeadAnnotation, thread.SeenUsers, classInstructors, classTAs, req.user.id, follows)
 

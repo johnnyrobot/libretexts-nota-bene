@@ -89,3 +89,24 @@ test('rollback stops when the new link cannot be written', () => {
     assert.doesNotMatch(s.log(), /restart/);
   } finally { s.cleanup(); }
 });
+
+test('book binding failure happens before backup, service changes or switching', () => {
+ const s=sandbox({});
+ try {
+  const target=path.join(s.opt,'releases/new'), operator=path.join(s.root,'operator');
+  fs.mkdirSync(operator);fs.mkdirSync(path.join(target,'textbook'));fs.mkdirSync(path.join(target,'scripts'));
+  fs.copyFileSync(path.join(__dirname,'../scripts/textbook-binding.cjs'),path.join(target,'scripts/textbook-binding.cjs'));
+  fs.writeFileSync(path.join(target,'RELEASE.json'),JSON.stringify({origin:'https://nb.example'}));
+  fs.writeFileSync(path.join(target,'textbook/textbook-manifest.json'),'changed content');
+  fs.writeFileSync(path.join(operator,'textbook-registration.json'),JSON.stringify({digest:'prior',origin:'https://nb.example'}));
+  fs.appendFileSync(path.join(s.root,'scripts/common.sh'),`\nNB_DEMO_OPERATOR=${operator}\n`);
+  const r=s.run('activate-release.sh','new');assert.equal(r.status,1);assert.equal(s.log(),'');assert.equal(fs.readlinkSync(path.join(s.opt,'current')),path.join(s.opt,'releases/old'));
+ }finally{s.cleanup();}
+});
+
+test('successful activation records the real previous release',()=>{
+ const s=sandbox({});try{
+  fs.writeFileSync(path.join(s.root,'scripts/health.sh'),'#!/usr/bin/env bash\nexit 0\n',{mode:0o755});
+  const r=s.run('activate-release.sh','new');assert.equal(r.status,0,r.stderr);assert.equal(fs.readlinkSync(path.join(s.opt,'current')),path.join(s.opt,'releases/new'));assert.equal(fs.readFileSync(path.join(s.opt,'previous'),'utf8').trim(),path.join(s.opt,'releases/old'));
+ }finally{s.cleanup();}
+});

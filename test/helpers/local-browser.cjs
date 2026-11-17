@@ -16,13 +16,20 @@ async function localBrowser(browser, explicitPorts) {
       blocked.add(url.origin + url.pathname);
       return route.abort('blockedbyclient');
     }
-    const response = await route.fetch({ maxRedirects: 0 });
+    let response;
+    try { response = await route.fetch({ maxRedirects: 0 }); }
+    catch (error) {
+      if (/Target page, context or browser has been closed|Request context disposed|ERR_ABORTED/.test(error.message)) return;
+      throw new Error('Isolated request failed at ' + url.pathname);
+    }
     if (response.status() >= 300 && response.status() < 400 && response.headers().location) {
       const destination = new URL(response.headers().location, url);
       blocked.add(destination.origin + destination.pathname);
+      await response.dispose();
       return route.abort('blockedbyclient');
     }
-    return route.fulfill({ response });
+    try { return await route.fulfill({ response }); }
+    finally { await response.dispose(); }
   });
   await context.routeWebSocket('**/*', socket => {
     if (permitted(socket.url())) { socket.connectToServer(); return; }

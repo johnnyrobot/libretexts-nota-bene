@@ -1,0 +1,29 @@
+/* Scoped integration with the preserved textbook layout; native NB remains the editor. */
+html[data-nb-textbook] body { padding-right:325px; }
+html[data-nb-textbook] .page-inner,
+html[data-nb-textbook] .head-inner,
+html[data-nb-textbook] .utility-inner,
+html[data-nb-textbook] .crumb-inner,
+html[data-nb-textbook] .foot-inner { padding-left:40px; padding-right:16px; }
+.nb-book-controls { margin:16px 16px 16px 40px; padding:12px 16px; border-left:4px solid #0372a6; font:16px/1.5 system-ui; }
+.nb-book-controls label { display:block; font-weight:600; }
+.nb-book-controls select { max-width:100%; margin:8px 0; }
+.nb-book-controls button { min-height:44px; padding:8px 12px; }
+.nb-book-controls :focus-visible { outline:3px solid #155ca2; outline-offset:3px; }
+@media(max-width:760px) {
+ html[data-nb-textbook] body { padding-right:0; padding-bottom:50vh; }
+ html[data-nb-textbook] .nb-sidebar { position:fixed!important; top:auto!important; bottom:0!important; right:0!important; width:100vw!important; height:48vh!important; max-height:48vh!important; overflow:auto; }
+}
+@media(forced-colors:active) { .nb-book-controls {border-color:CanvasText;} }
+/* Reader consent is modal and must sit above the native sidebar. Keep playback usable. */
+html[data-nb-textbook] .tts-dialog,
+html[data-nb-textbook] .tts-bar { z-index:2147483647!important; }
+@media(min-width:761px) { html[data-nb-textbook] .tts-bar { right:325px; } }
+@media(max-width:760px) { html[data-nb-textbook] .tts-bar { bottom:48vh; max-width:100%; } }
+
+html[data-nb-textbook] main .ch-grid, html[data-nb-textbook] main .mt-sortable-listings-container { max-width:100%; }
+/* Reader mode uses a transient DOM. Discussions resume on the published DOM after exit. */
+html[data-nb-textbook][data-tts-reader=on] #nb-app-wrapper,
+html[data-nb-textbook][data-nb-reader-restoring=true] #nb-app-wrapper { display:none!important; }
+html[data-nb-textbook][data-tts-reader=on] body { padding-right:0; padding-bottom:0; }
+html[data-nb-textbook][data-tts-reader=on] .tts-bar { right:0; bottom:0; }

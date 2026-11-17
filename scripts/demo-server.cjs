@@ -1,6 +1,8 @@
 // Isolated native NB demo launcher (LT-575). Plain HTTP on loopback only;
 // the reverse proxy terminates public HTTPS. Email is captured, never sent.
 const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
 const { readDemoEnv, createDemoApp } = require('./demo-config.cjs');
 
 async function main() {
@@ -12,7 +14,7 @@ async function main() {
   const app = require('../app');
   const db = require('../models');
   await db.ready;
-  const server = http.createServer(createDemoApp({ app, clientDir: config.clientDir }));
+  const server = http.createServer(createDemoApp({ app, clientDir: config.clientDir, textbookDir: process.env.NB_DEMO_TEXTBOOK_DIR || (fs.existsSync(path.join(__dirname, '../textbook/textbook-manifest.json')) ? path.join(__dirname, '../textbook') : undefined) }));
   // socket.io is deliberately not attached: native 'joined' is unauthenticated and new_thread /
   // new_reply carry thread content to the whole room regardless of visibility. Routes still emit
   // into the unattached server, which delivers nothing. Readers see others' posts on reload.

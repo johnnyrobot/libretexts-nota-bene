@@ -23,6 +23,7 @@ node -e 'const r=require(process.argv[1]); if (r.origin!==process.argv[2]) { con
   "$STAGE/$ID/RELEASE.json" "$ORIGIN"
 (cd "$STAGE/$ID" && HOME="$STAGE" npm_config_cache="$STAGE/.npm" npm ci --ignore-scripts --no-audit --no-fund)
 rm -rf "$STAGE/.npm"
+mkdir -p "$STAGE/$ID/uploads"
 chown -R root:root "$STAGE/$ID"
 chmod -R u=rwX,go=rX "$STAGE/$ID"
 chmod -R a-w "$STAGE/$ID"

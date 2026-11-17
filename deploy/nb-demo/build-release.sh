@@ -9,6 +9,7 @@ ORIGIN=${1:?public origin, e.g. https://nb.libretexts.dev}
 CLIENT_REPO=${2:?client repository path}
 OUTPUT=${3:?output directory}
 CLIENT_SHA=${4:-f26b5f7b836c76f2f1196f67c1f733910343b394}
+BOOK_STAGE=${5:-}
 SERVER_REPO=$(cd "$(dirname "$0")/../.." && pwd)
 
 node -e 'require(process.argv[1]).parseOrigin(process.argv[2])' "$SERVER_REPO/scripts/demo-config.cjs" "$ORIGIN"
@@ -19,7 +20,13 @@ fi
 SERVER_SHA=$(git -C "$SERVER_REPO" rev-parse HEAD)
 CLIENT_SHA=$(git -C "$CLIENT_REPO" rev-parse --verify "$CLIENT_SHA^{commit}")
 HOST=$(node -e 'console.log(new URL(process.argv[1]).host.replace(/[^A-Za-z0-9.-]/g, "-"))' "$ORIGIN")
-ID="nb-demo-${SERVER_SHA:0:12}-${CLIENT_SHA:0:12}-${HOST}"
+BOOK_DIGEST=''
+BOOK_SUFFIX=''
+if [ -n "$BOOK_STAGE" ]; then
+  BOOK_DIGEST=$(python3 "$SERVER_REPO/scripts/textbook-package.py" --identity "$BOOK_STAGE")
+  BOOK_SUFFIX="-book-${BOOK_DIGEST:0:12}"
+fi
+ID="nb-demo-${SERVER_SHA:0:12}-${CLIENT_SHA:0:12}-${HOST}${BOOK_SUFFIX}"
 mkdir -p "$OUTPUT"
 OUTPUT=$(cd "$OUTPUT" && pwd)
 if [ -e "$OUTPUT/$ID" ] || [ -e "$OUTPUT/$ID.tar.gz" ]; then
@@ -38,6 +45,8 @@ git -C "$CLIENT_REPO" archive "$CLIENT_SHA" | tar -x -C "$WORK/client"
 
 R="$WORK/release/$ID"
 git -C "$SERVER_REPO" archive "$SERVER_SHA" | tar -x -C "$R"
+# Original public development keys are source history, never runnable demo credentials.
+rm -rf "$R/dev_ssl_cert"
 cp -R "$WORK/server/dist" "$R/dist"
 mkdir -p "$R/client/js"
 cp -R "$WORK/client/public/style" "$WORK/client/public/emoji" "$R/client/"
@@ -50,15 +59,22 @@ cp "$R/deploy/nb-demo/reading.html" "$R/client/reading.html"
 # models/index.js requires config.js before it reads DATABASE_URL.
 printf 'module.exports = { db: {} };\n' > "$R/config.js"
 
+if [ -n "$BOOK_STAGE" ]; then
+  python3 "$SERVER_REPO/scripts/textbook-package.py" "$BOOK_STAGE" "$R/textbook"
+  COPIED_BOOK_DIGEST=$(python3 "$SERVER_REPO/scripts/textbook-package.py" --identity "$R/textbook")
+  [ "$COPIED_BOOK_DIGEST" = "$BOOK_DIGEST" ] || { echo "Publication changed during build; preserve inputs and start a fresh release." >&2; exit 1; }
+fi
+mkdir "$R/uploads"
+
 sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 node -e '
-const [id, origin, serverSha, clientSha, serverLock, clientLock, built, rewritten, dist] = process.argv.slice(1);
-console.log(JSON.stringify({ id, origin, serverSha, clientSha,
+const [id, origin, serverSha, clientSha, serverLock, clientLock, built, rewritten, dist, bookDigest] = process.argv.slice(1);
+console.log(JSON.stringify({ id, origin, serverSha, clientSha, bookPublicationSha256: bookDigest || null,
   sha256: { serverPackageLock: serverLock, clientPackageLock: clientLock, clientBundleBuilt: built, clientBundleRewritten: rewritten, serverDistIndex: dist },
   buildRuntime: { node: process.version, npm: require("child_process").execSync("npm -v").toString().trim(), platform: process.platform + "-" + process.arch },
   hostInstall: "npm ci --ignore-scripts from serverPackageLock (runtime modules are listed as devDependencies upstream)" }, null, 2));
 ' "$ID" "$ORIGIN" "$SERVER_SHA" "$CLIENT_SHA" "$(sha "$R/package-lock.json")" "$(sha "$WORK/client/package-lock.json")" \
-  "$(sha "$WORK/client/public/js/bundle.js")" "$(sha "$R/client/js/bundle.js")" "$(sha "$R/dist/index.html")" > "$R/RELEASE.json"
+  "$(sha "$WORK/client/public/js/bundle.js")" "$(sha "$R/client/js/bundle.js")" "$(sha "$R/dist/index.html")" "$BOOK_DIGEST" > "$R/RELEASE.json"
 (cd "$R" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256) > "$WORK/MANIFEST.sha256"
 mv "$WORK/MANIFEST.sha256" "$R/MANIFEST.sha256"
 

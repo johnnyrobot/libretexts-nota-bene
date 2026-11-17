@@ -10,6 +10,7 @@ const HtmlLocation = require('../models').HtmlLocation;
 const AnnotationMedia = require('../models').AnnotationMedia
 const Tag = require('../models').Tag;
 const router = express.Router();
+router.use(require('../auth/native-discussions'));
 const { Op } = require("sequelize");
 const utils = require('../models/utils')(require('../models'));
 let socketapi = require("../socketapi")
@@ -251,8 +252,9 @@ router.get('/annotation', (req, res) => {
                     headAnnotations.push(utils.createAnnotation(location, location.Thread.HeadAnnotation, instructors, tas, req.user.id, follows))
 
                     // store all associated annotations in {parent_id : annotation} annotations object
+                    const canReadFamily=require('../auth/native-discussions').threadReader(location.Thread.AllAnnotations,location.Thread.HeadAnnotation,req.user.id,isUserInstructor || isUserTA);
                     location.Thread.AllAnnotations.forEach((annotation) => {
-                        if (annotation.Parent) {
+                        if (annotation.Parent && canReadFamily(annotation)) {
                             if (!(annotation.Parent.id in annotations)) {
                                 annotations[annotation.Parent.id] = []
                             }
@@ -632,11 +634,13 @@ router.get('/specific_thread', async (req, res) => {
             ]
         })
 
+        const readable=require('../auth/native-discussions').threadReader(thread.AllAnnotations,thread.HeadAnnotation,req.user.id,classInstructors.has(req.user.id) || classTAs.has(req.user.id));
+        if(!readable(thread.HeadAnnotation)) return res.sendStatus(403);
         let annotations = {}
         let headAnnotation = utils.createAnnotationFromThread(thread.Location.HtmlLocation, thread.HeadAnnotation, thread.SeenUsers, classInstructors, classTAs, req.user.id, follows)
 
         thread.AllAnnotations.forEach((annotation) => {
-            if (annotation.Parent) {
+            if (annotation.Parent && readable(annotation)) {
                 if (!(annotation.Parent.id in annotations)) {
                     annotations[annotation.Parent.id] = []
                 }

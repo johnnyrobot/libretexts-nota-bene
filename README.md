@@ -2,7 +2,7 @@
 
 This server and its companion client run the LibreTexts Social Psychology textbook demo. Browse the book without an account or sign in to annotate a passage and reply to discussions you can access.
 
-[Open the textbook demo](https://nb.libretexts.dev/books/social_psychology/) · [Try chapter 13.01](https://nb.libretexts.dev/books/social_psychology/13%3A_Competition_and_Cooperation_in_Our_Social_Worlds/13.01%3A_Conflict_Cooperation_Morality_and_Fairness/) · [Nota Bene client repository](https://github.com/johnnyrobot/libretexts-nota-bene-client)
+[Open the textbook demo and Try chapter 13.01](https://nb.libretexts.dev/books/social_psychology/13%3A_Competition_and_Cooperation_in_Our_Social_Worlds/13.01%3A_Conflict_Cooperation_Morality_and_Fairness/) · [Nota Bene client repository](https://github.com/johnnyrobot/libretexts-nota-bene-client)
 
 ## Try a highlight and comment
 

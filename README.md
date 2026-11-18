@@ -1,6 +1,33 @@
-# Nota Bene, LibreTexts development fork
+# Nota Bene for LibreTexts
 
-For the isolated native NB baseline, use [Native baseline](docs/NATIVE-BASELINE.md). The upstream setup notes below are preserved for provenance; they are not the verified local procedure.
+This server and its companion client run the LibreTexts Social Psychology textbook demo. Browse the book without an account or sign in to annotate a passage and reply to discussions you can access.
+
+[Open the textbook demo](https://nb.libretexts.dev/books/social_psychology/) · [Try chapter 13.01](https://nb.libretexts.dev/books/social_psychology/13%3A_Competition_and_Cooperation_in_Our_Social_Worlds/13.01%3A_Conflict_Cooperation_Morality_and_Fairness/) · [Nota Bene client repository](https://github.com/johnnyrobot/libretexts-nota-bene-client)
+
+## Try a highlight and comment
+
+1. Open chapter 13.01 and sign in to Nota Bene with an authorized demo account.
+2. Drag across a few words in the reading and release. **New Comment** opens in the Nota Bene panel.
+3. Type a comment, choose the audience under **Post to**, and click **Submit**. To test privately, choose **Myself only**.
+4. Click the saved thread in the panel to see its comment and highlighted passage. Reload the chapter to see newly posted replies.
+
+## Demo source versions
+
+| Status | Server | Client |
+| --- | --- | --- |
+| Last verified live release | [`1d89caf`](https://github.com/johnnyrobot/libretexts-nota-bene/commit/1d89caf475999f9919c20d224d2e6a2cbd563d53) | [`c22be72`](https://github.com/johnnyrobot/libretexts-nota-bene-client/commit/c22be72ad9ee9949f6ba2907e413ff028cdef22f) |
+| Merged textbook update, awaiting activation as of November 18, 2026 | [`cec5988`](https://github.com/johnnyrobot/libretexts-nota-bene/commit/cec5988476cd505b4511159100db8dfd68436f47) | [`7c0631f`](https://github.com/johnnyrobot/libretexts-nota-bene-client/commit/7c0631f83d5bed2f2430293bb0006cc3d3f98312) |
+
+The merged update adds a visible **Switch account** button and a collapsed **Choose a passage with the keyboard** control. Live updates are disabled on the demo.
+
+## Develop locally
+
+Follow the [native baseline setup](docs/NATIVE-BASELINE.md) for paired local development and the [textbook integration guide](docs/NATIVE-TEXTBOOK.md) for the book publisher and verification. This repository is derived from [haystack/nb](https://github.com/haystack/nb). The companion client is derived from [haystack/nbclient](https://github.com/haystack/nbclient).
+
+<details>
+<summary>Historical upstream setup notes</summary>
+
+For the verified LibreTexts workflow, use the local development guides above.
 
 # Installation
 
@@ -119,3 +146,5 @@ sudo pm2 log all                # show all logs
 ```
 ### Other
 to update certificate, run `sudo certbot renew`, if this doesn't work try `certbot certonly --manual -d $DOMAIN.com` then recreate the challange.
+
+</details>

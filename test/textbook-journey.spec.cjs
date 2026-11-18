@@ -22,7 +22,7 @@ test('public chapter navigation, unauthorized denial, keyboard native editor and
  const restored=page.waitForResponse(r=>r.url().includes('/api/annotations/annotation?') && r.status()===200);
  await page.goto(encoded.href);await restored;
  await expect(page.locator('#nb-sidebar')).toContainText('How does this passage support cooperation?');
- await page.getByLabel('Choose a passage to discuss').focus();await page.keyboard.press('Home');await page.keyboard.press('Tab');await page.keyboard.press('Enter');
+ await page.locator('.nb-book-controls summary').focus();await page.keyboard.press('Enter');await page.getByLabel('Choose a passage to discuss').focus();await page.keyboard.press('Home');await page.keyboard.press('Tab');await page.keyboard.press('Enter');
  await expect(page.locator('.editor-view')).toBeVisible();await expect(page.locator('.editor-view .ql-editor')).toBeFocused();
  await page.screenshot({path:path.join(process.env.NB_BASELINE_RESULTS,'keyboard-desktop.png'),fullPage:false});
  await page.keyboard.press('Escape');

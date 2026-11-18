@@ -6,7 +6,8 @@ html[data-nb-textbook] .utility-inner,
 html[data-nb-textbook] .crumb-inner,
 html[data-nb-textbook] .foot-inner { padding-left:40px; padding-right:16px; }
 .nb-book-controls { margin:16px 16px 16px 40px; padding:12px 16px; border-left:4px solid #0372a6; font:16px/1.5 system-ui; }
-.nb-book-controls label { display:block; font-weight:600; }
+.nb-book-controls summary { font-weight:600; cursor:pointer; }
+.nb-book-controls label { display:block; font-weight:600; margin-top:12px; }
 .nb-book-controls select { max-width:100%; margin:8px 0; }
 .nb-book-controls button { min-height:44px; padding:8px 12px; }
 .nb-book-controls :focus-visible { outline:3px solid #155ca2; outline-offset:3px; }
@@ -27,3 +28,5 @@ html[data-nb-textbook][data-tts-reader=on] #nb-app-wrapper,
 html[data-nb-textbook][data-nb-reader-restoring=true] #nb-app-wrapper { display:none!important; }
 html[data-nb-textbook][data-tts-reader=on] body { padding-right:0; padding-bottom:0; }
 html[data-nb-textbook][data-tts-reader=on] .tts-bar { right:0; bottom:0; }
+
+html[data-nb-textbook] .nb-book-status { margin:8px 16px 16px 40px; font:16px/1.5 system-ui; }

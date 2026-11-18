@@ -61,6 +61,7 @@ test('native client creates an annotation and another user replies, with persist
   const alice = await login(browser, settings.users[0]);
   if (!readOnly && !proof.annotationId) {
     if(process.env.NB_BASELINE_SELECTION==='keyboard') {
+      if(isBook){await alice.page.locator('.nb-book-controls summary').focus();await alice.page.keyboard.press('Enter');}
       await alice.page.getByLabel('Choose a passage to discuss').focus();
       await alice.page.keyboard.press('Home');
       await alice.page.keyboard.press('Tab');
